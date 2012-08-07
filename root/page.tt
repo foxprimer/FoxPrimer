@@ -1,0 +1,138 @@
+<!DOCTYPE HTML>
+[% INCLUDE header %]
+	<body>
+		<p>[% content %]</p>
+		<div id="messages" class="interact">
+			Status Messages:
+			<span class="status">[% status_msg %]</span>
+			<span class="error">[% error_msg %]</span>
+		</div>
+		
+[% INCLUDE footer %]
+
+[% BLOCK header %]
+	<html>
+	<head>
+	    <style type="text/css">
+		body{
+		font-family:"Lucida Grande", "Lucida Sans Unicode", Verdana, Arial, Helvetica, sans-serif;
+		font-size:12px;
+		}
+		.roles{
+			float: left;
+		}
+		.copyright{
+			position: absolute;
+			right: 5px;
+			bottom: 5px;
+		}
+		.instructions{
+			margin-left: auto;
+			margin-right: auto;
+			width: 50em;
+		}
+		#messages{
+			border:solid 2px #b7ddf2;
+			background:#ebf4fb;
+		}
+		#messages .status {
+			color: #390;
+			text-align: center;
+		}
+		#messages .error {
+			color: #f00;
+			text-align: center;
+		}
+		.interact{
+		margin:0 auto;
+		width:500px;
+		padding:14px;
+		}
+		p, h1, form, button{border:0; margin:0; padding:0;}
+		.spacer{clear:both; height:1px;}
+		/* ----------- My Form ----------- */
+		.myform{
+		margin:0 auto;
+		width:700px;
+		padding:14px;
+		}
+		img{
+			float: right;
+		}
+		header{
+			float: left;
+		}
+		/* ----------- stylized ----------- */
+		#stylized{
+		border:solid 2px #b7ddf2;
+		background:#ebf4fb;
+		}
+		#stylized h1 {
+		font-size:14px;
+		font-weight:bold;
+		margin-bottom:8px;
+		}
+		#stylized p{
+		font-size:11px;
+		color:#666666;
+		margin-bottom:20px;
+		border-bottom:solid 1px #b7ddf2;
+		padding-bottom:10px;
+		}
+		#stylized label{
+		display:table-cell;
+		font-weight:bold;
+		text-align:left;
+		width:140px;
+		float:none;
+		}
+		#stylized .small{
+		color:#666666;
+		display:table-row;
+		font-size:11px;
+		font-weight:normal;
+		text-align:left;
+		width:140px;
+		float: left;
+		}
+		#stylized input{
+		float:left;
+		font-size:12px;
+		padding:4px 2px;
+		border:solid 1px #aacfe4;
+		width:200px;
+		margin:2px 0 20px 10px;
+		}
+		#stylized button{
+		clear:both;
+		margin-left:150px;
+		width:125px;
+		height:31px;
+		background:#666666 url(img/button.png) no-repeat;
+		text-align:center;
+		line-height:31px;
+		color:#FFFFFF;
+		font-size:11px;
+		font-weight:bold;
+		}
+	    </style>
+	</head>
+	<div class="header">
+		<img src="[% c.uri_for('/static/images/GSBS_Home_1.jpg') %]" />
+		<h1>[% template.title or site.title %]</h1>
+	</div>
+[% END %]
+
+[% BLOCK footer %]
+			<div class="roles" >
+				<p>
+					<ul>
+						<li><a href="[% c.uri_for('search_real_time_qpcr_primers') %]">Search qPCR Primer Bank</a></li>
+						<li><a href="[% c.uri_for('create_real_time_qpcr_primers') %]">Create qPCR Primers</a></li>
+						<li><a href="[% c.uri_for('validated_primer_entry') %]">Enter Validated qPCR Primers</a></li>
+					</ul>
+				</p>
+			</div>
+		</body>
+	</html>
+[% END %]

@@ -1,0 +1,88 @@
+[% USE Dumper %]
+[% WRAPPER page.tt title = c.config.name ; END %]
+[% META title = 'Real Time qPCR Primer Design' %]
+<div id="stylized" class="myform">
+<form name="real_time_qPCR_primer_design" method=POST action="mrna_primer_design">
+
+       <table>
+	<tr>
+		<td><label>Species</td>
+		<td><span class="small">Please select which type of search you will perform:</span>
+		<td><select name="species"><option value="Human">Human</option><option value="Rodent and Simple">Rodent and Simple</option>
+	</tr>
+       </table>
+
+       <table>
+        <tr>
+		<blockquote>Please enter a comma seperated list of valid NCBI mRNA accessions.<br />
+		            Each accession should be in the format NM_(number),NM_(number)<br />
+		            This program will try to design three types of primer pairs based on location of the primers relative to splice sites and intron size<br />
+		            These types are <b>Junction Spanning</b>, <b>On either side of an intron greater than a specified size</b>, and <b>Intra-exon primers</b><br />
+		</blockquote>
+        </tr>
+       </table>
+
+       <table>
+	<tr>
+	       <td><label>Accessions</td>
+	       <td><span class="small">Enter the accessions in a comma seperated list:</span></label></td>
+	       <td><input type="text" name="genes" value="" title="Accessions"></td>
+        </tr>
+	<tr>
+	       <td><label>Product size</td>
+	       <td><span class="small">Enter the desired product range for your qPCR reaction (default 70-150):</span></label></td>
+	       <td><input type="text" name="product_size" value="70-150" title="Product Size"></td>
+	</tr>
+	<tr>
+	       <td><label>Intron Size</td>
+               <td><span class="small">Enter the minimum size for an intron to be considred for primer design:</span></label></td>
+ 	       <td><input type="text" name="intron_size" value="1000" title="Intron Size"></td>
+	</tr>
+        <tr>
+	       <td><label>Number Per Type</td>
+	       <td><span class="small">Enter the maximum number of primer pairs to design for each of the three types:</span></label></td>
+	       <td><input type="text" name="number_per_type" value="5" title="Number Per Type"></td>
+        </tr>
+       </table>
+
+       <table>
+        <tr><button type="submit">Submit Query!</button></tr>
+       </table>
+
+       <div class="spacer"></div>
+</form>
+</div>
+	<table border="1">
+		<th>Primer Type</th>
+		<th>mRNA Description</th>
+		<th>NCBI Accession</th>
+		<th>Primer Pair Number</th>
+		<th>Left Primer Sequence</th>
+		<th>Right Primer Sequence</th>
+		<th>Left Primer Tm</th>
+		<th>Right Primer Tm</th>
+		<th>Left Primer Coordinates</th>
+		<th>Right Primer Coordinates</th>
+		<th>Product Size</th>
+		<th>Primer Pair Penalty</th>
+		<th>Left Primer Position</th>
+		<th>Right Primer Position</th>
+		[%WHILE (primer_row = primer_results.next) %]
+			<tr>
+				<td>[% primer_row.primer_type %]</td>
+				<td>[% primer_row.description %]</td>
+				<td>[% primer_row.mrna %]</td>
+				<td>[% primer_row.primer_pair_number %]</td>
+				<td>[% primer_row.left_primer_sequence %]</td>
+				<td>[% primer_row.right_primer_sequence %]</td>
+				<td>[% primer_row.left_primer_tm %]</td>
+				<td>[% primer_row.right_primer_tm %]</td>
+				<td>[% primer_row.left_primer_coordinates %]</td>
+				<td>[% primer_row.right_primer_coordinates %]</td>
+				<td>[% primer_row.product_size %]</td>
+				<td>[% primer_row.product_penalty %]</td>
+				<td>[% primer_row.left_primer_position %]</td>
+				<td>[% primer_row.right_primer_position %]</td>
+			</tr>
+		[% END %]
+	</table>
