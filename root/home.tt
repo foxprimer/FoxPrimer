@@ -1,2 +1,8 @@
 [% WRAPPER default.tt title = c.config.name ; END %]
 [% META title = 'FoxPrimer qPCR Primer Design Suite' %]
+<div id="stylized" class="myform">
+	<blockquote>
+	FoxPrimer is a Catalyst Perl-based primer design program that uses Primer3 and Sim4 to design and map cDNA primers and uses Primer3 and FIMO to design and map ChIP primers.<br /><br />
+	All <i>in silico</i>-designed primers are stored in an SQLite3 database and are rapidly retrieved. Primers whose effeciency have been experimentall validated are stored in a seperate database.<br /><br />
+	Please select a primer design mode on the left, or search the primer database.<br /><br />
+	For more detailed methods please view (placeholder for hyperlink to paper).<br />

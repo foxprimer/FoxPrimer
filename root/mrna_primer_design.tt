@@ -6,16 +6,16 @@
        <table>
 	<tr>
 		<td><label>Species</td>
-		<td><span class="small">Please select which type of search you will perform:</span>
+		<td><span class="small">Please select which mispriming library to use:</span>
 		<td><select name="species"><option value="Human">Human</option><option value="Rodent and Simple">Rodent and Simple</option>
 	</tr>
        </table>
 
        <table>
         <tr>
-		<blockquote>Please enter a comma seperated list of valid NCBI mRNA accessions.<br />
-		            Each accession should be in the format NM_(number),NM_(number)<br />
-		            This program will try to design three types of primer pairs based on location of the primers relative to splice sites and intron size<br />
+		<blockquote>Please enter a comma seperated list of valid NCBI mRNA accessions.<br /><br />
+		            The string of accessions should be in the format NM_(number),NM_(number)<br /><br />
+		            This program will try to design three types of primer pairs based on location of the primers relative to splice sites and intron size<br /><br />
 		            These types are <b>Junction Spanning</b>, <b>On either side of an intron greater than a specified size</b>, and <b>Intra-exon primers</b><br />
 		</blockquote>
         </tr>
@@ -51,7 +51,7 @@
        <div class="spacer"></div>
 </form>
 </div>
-	<table style="margin:25px; margin-left:200px;" border="1">
+	<table style="margin:25px;" border="1">
 		<th>Primer Type</th>
 		<th>mRNA Description</th>
 		<th>NCBI Accession</th>

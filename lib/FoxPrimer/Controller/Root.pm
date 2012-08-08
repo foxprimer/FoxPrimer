@@ -37,6 +37,7 @@ sub index :Path :Args(0) {
 	# of methods and usage for the application.
     $c->stash(
 		template	=>	'home.tt',
+		status_msg		=>	'Welcome to the FoxPrimer qPCR Primer Design Suite!',
 	);
 }
 
@@ -51,6 +52,7 @@ sub mrna_primer_design_shell :Local {
 	my ($self, $c) = @_;
 	$c->stash(
 			template	=>	'mrna_primer_design.tt',
+			status_msg	=>	'Please fill out the form below to begin making primers',
 	);
 }
 
@@ -73,7 +75,7 @@ sub mrna_primer_design :Chained('/') :PathPart('mrna_primer_design') :Args(0) {
 		);
 	} else {
 		# predeclare an arrayref to hold the list of ncbi accessions
-		my $genes;
+		my $genes = [];
 		# if there is more than one accession listed, split them by
 		# the comma-delimiter
 		if ($structure->{genes} =~ /,/) {
@@ -122,11 +124,12 @@ sub mrna_primer_design :Chained('/') :PathPart('mrna_primer_design') :Args(0) {
 					# This subroutine checks the database of accessions, gis and genomic
 					# coordinates for the user-entered accessions, returns an arrayref of
 					# accessions not found in the database
-					my ($valid_accessions, $invalid_accessions, $list_of_found_accessions);
+					my ($valid_accessions, $list_of_found_accessions);
+					my $invalid_accessions = [];
 					my $rs = $c->model('Valid_mRNA::Gene2accession')->search({
 							-or	=>	[
-								'mrna'		=>	@$genes,
-								'mrna_root'	=>	@$genes,
+								'mrna'		=>	[@$genes],
+								'mrna_root'	=>	[@$genes],
 							],
 						}
 					);
@@ -145,13 +148,12 @@ sub mrna_primer_design :Chained('/') :PathPart('mrna_primer_design') :Args(0) {
 					# user as a string of accessions in the error message field. If any
 					# accessions entered are valid, these are sent to the create primers
 					# subroutine and the results are returned to the user.
-					my $okay_to_make_primers = 0;
 					foreach my $gene (@$genes) {
-						if ( defined ( $valid_accessions->{$gene} ) ) {
-							$okay_to_make_primers++;
+						unless ( defined( $list_of_found_accessions->{$gene} ) ) {
+							push (@$invalid_accessions, $gene);
 						}
 					}
-					if ( $okay_to_make_primers > 0 ) {
+					if ( defined (%$valid_accessions) ) {
 						my $number_of_valid_accessions = 0;
 						foreach my $valid_accession ( keys $valid_accessions ) {
 							$number_of_valid_accessions++;
@@ -167,6 +169,7 @@ sub mrna_primer_design :Chained('/') :PathPart('mrna_primer_design') :Args(0) {
 									structure		=>	$structure,
 									primer_results	=>	$primer_results,
 									template		=>	'mrna_primer_design.tt',
+									status_msg		=>	'Your primers have been designed!',
 							);
 						} else {
 							my $error_string = join(", ", @$invalid_accessions);

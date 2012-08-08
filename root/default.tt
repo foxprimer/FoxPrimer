@@ -9,7 +9,7 @@
 		}
 		UL.navigation
 		{
-			position: fixed;
+			position: relative;
 			top: 170px;
 			left: 5px;
 		}
@@ -22,15 +22,9 @@
 		}
 		IMG.fox
 		{
-			position: fixed;
-			left: 5px;
-			top: 5px;
-		}
-		#out_table
-		{
-			margin-left:auto;
-			margin-right: auto;
-			margin: 25px;
+			position: relative;
+			left: 35px;
+			top: 150px;
 		}
 		#instructions
 		{
@@ -39,7 +33,8 @@
 			width: 50em;
 		}
 		H1.page_title{
-			top: 5px;
+			position: relative;
+			top 50px;
 			text-align: center;
 		}
 		#messages
@@ -50,6 +45,8 @@
 			margin: 10px;
 			margin-left: auto;
 			margin-right: auto;
+			width:500px;
+			text-align: center;
 		}
 		#messages.status
 		{
@@ -61,11 +58,8 @@
 			color: #f00;
 			text-align: center;
 		}
-		p.interact
+		.interact
 		{
-			margin:0 auto;
-			width:500px;
-			padding:14px;
 		}
 		p, h1, form, button{border:0; margin:0; padding:0;}
 		p.spacer{clear:both; height:1px;}
@@ -139,9 +133,9 @@
 	    </style>
 	</head>
 	<body>
-		<H1 class="page_title">[% template.title or site.title %]</H1>
-		<IMG class="fox" src="[% c.uri_for('/static/images/FoxPrimer.png') %]" />
 		<p>
+			<H1 class="page_title">[% template.title or site.title %]</H1>
+			<IMG class="fox" src="[% c.uri_for('/static/images/FoxPrimer.png') %]" />
 			<UL class="navigation">
 			<li><a href="[% c.uri_for('/') %]">Home Page</a></li>
 			<li><a href="[% c.uri_for('mrna_primer_design_shell') %]">Create qPCR Primers</a></li>
@@ -149,10 +143,10 @@
 			</UL>
 		</p>
 		<p>[% content %]</p>
-		<p id="messages" class="interact">
-			Status Messages:
-			<span class="status">[% status_msg %]</span>
-			<span class="error">[% error_msg %]</span>
+		<p id="messages">
+		Status Messages:<br>
+			<span id="messages" class="status">[% status_msg %]</span>
+			<span id="messages" class="error">[% error_msg %]</span>
 		</p>
 		<P class="copyright">Copyright 2012 Jason R. Dobson</P>
 	</body>
