@@ -57,10 +57,10 @@
 		padding:14px;
 		}
 		img{
-			float: right;
+			float: left;
 		}
 		header{
-			float: left;
+			float: top;
 		}
 		/* ----------- stylized ----------- */
 		#stylized{
@@ -118,7 +118,7 @@
 	    </style>
 	</head>
 	<div class="header">
-		<img src="[% c.uri_for('/static/images/GSBS_Home_1.jpg') %]" />
+		<img src="[% c.uri_for('/static/images/FoxPrimer.png') %]" />
 		<h1>[% template.title or site.title %]</h1>
 	</div>
 [% END %]

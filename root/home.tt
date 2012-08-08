@@ -1,0 +1,2 @@
+[% WRAPPER page.tt title = c.config.name ; END %]
+[% META title = 'FoxPrimer qPCR Primer Design Suite' %]

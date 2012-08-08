@@ -7,7 +7,7 @@ BEGIN { extends 'Catalyst::Controller' }
 
 #
 # Sets the actions in this controller to be registered with no prefix
-# so they function identically to actions created in MyApp.pm
+# so they function identically to actions created in FoxPrimer.pm
 #
 __PACKAGE__->config(namespace => '');
 
@@ -17,7 +17,9 @@ FoxPrimer::Controller::Root - Root Controller for FoxPrimer
 
 =head1 DESCRIPTION
 
-[enter your description here]
+This is the controller root for the FoxPrimer application. It handles
+the data-verification and transfer of information between the View 
+and the Model.
 
 =head1 METHODS
 
@@ -30,8 +32,12 @@ The root page (/)
 sub index :Path :Args(0) {
     my ( $self, $c ) = @_;
 
-    # Hello World
-    $c->response->body( $c->welcome_message );
+    # Load the default page for FoxPrimer. This page will display
+	# the default page for the application, with brief descriptions 
+	# of methods and usage for the application.
+    $c->stash(
+		template	=>	'home.tt',
+	);
 }
 
 =head2 mrna_primer_design
