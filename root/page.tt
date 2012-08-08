@@ -1,17 +1,31 @@
 <!DOCTYPE HTML>
 [% INCLUDE header %]
+<html>
 	<body>
-		<p>[% content %]</p>
+		<div class="page_title">
+			<h1>[% template.title or site.title %]</h1>
+		</div>
+		<div class="roles" >
+			<img src="[% c.uri_for('/static/images/FoxPrimer.png') %]" />
+			<p><ul>
+			<li><a href="[% c.uri_for('/') %]">Home Page</a></li>
+			<li><a href="[% c.uri_for('mrna_primer_design_shell') %]">Create qPCR Primers</a></li>
+			<!--						<li><a href="[% c.uri_for('validated_primer_entry') %]">Enter Validated qPCR Primers</a></li> -->
+			</ul></p>
+		</div>
+		<p>[% content %]<div class="push"></div></p>
 		<div id="messages" class="interact">
 			Status Messages:
 			<span class="status">[% status_msg %]</span>
 			<span class="error">[% error_msg %]</span>
 		</div>
+		<div class="footer">
+			<p>Copyright 2012 Jason R. Dobson</p>
+		</div>
+	</body>
 		
-[% INCLUDE footer %]
 
 [% BLOCK header %]
-	<html>
 	<head>
 	    <style type="text/css">
 		body{
@@ -19,12 +33,14 @@
 		font-size:12px;
 		}
 		.roles{
-			float: left;
+			position: relative;
+			top: 5px;
+			right: 5px;
 		}
 		.copyright{
-			position: absolute;
+			position: relative;
 			right: 5px;
-			bottom: 5px;
+			top: 5px;
 		}
 		.instructions{
 			margin-left: auto;
@@ -56,11 +72,14 @@
 		width:700px;
 		padding:14px;
 		}
-		img{
-			float: left;
+		.page_title{
+			position: relative;
+			top: 5px;
+			bottom: 20px;
+			text-align: center;
 		}
-		header{
-			float: top;
+		.footer, .push {
+			height: 4em;
 		}
 		/* ----------- stylized ----------- */
 		#stylized{
@@ -117,22 +136,6 @@
 		}
 	    </style>
 	</head>
-	<div class="header">
-		<img src="[% c.uri_for('/static/images/FoxPrimer.png') %]" />
-		<h1>[% template.title or site.title %]</h1>
-	</div>
+</html>
 [% END %]
 
-[% BLOCK footer %]
-			<div class="roles" >
-				<p>
-					<ul>
-						<li><a href="[% c.uri_for('search_real_time_qpcr_primers') %]">Search qPCR Primer Bank</a></li>
-						<li><a href="[% c.uri_for('create_real_time_qpcr_primers') %]">Create qPCR Primers</a></li>
-						<li><a href="[% c.uri_for('validated_primer_entry') %]">Enter Validated qPCR Primers</a></li>
-					</ul>
-				</p>
-			</div>
-		</body>
-	</html>
-[% END %]
