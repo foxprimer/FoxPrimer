@@ -1,9 +1,8 @@
 [% USE Dumper %]
-[% WRAPPER page.tt title = c.config.name ; END %]
+[% WRAPPER default.tt title = c.config.name ; END %]
 [% META title = 'Real Time qPCR Primer Design' %]
 <div id="stylized" class="myform">
 <form name="real_time_qPCR_primer_design" method=POST action="mrna_primer_design">
-
        <table>
 	<tr>
 		<td><label>Species</td>
@@ -52,7 +51,7 @@
        <div class="spacer"></div>
 </form>
 </div>
-	<table border="1">
+	<table style="margin:25px; margin-left:200px;" border="1">
 		<th>Primer Type</th>
 		<th>mRNA Description</th>
 		<th>NCBI Accession</th>

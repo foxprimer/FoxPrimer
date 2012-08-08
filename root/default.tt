@@ -1,0 +1,162 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+	    <style type="text/css">
+		body
+		{
+		font-family:"Lucida Grande", "Lucida Sans Unicode", Verdana, Arial, Helvetica, sans-serif;
+		font-size:12px;
+		}
+		UL.navigation
+		{
+			position: fixed;
+			top: 170px;
+			left: 5px;
+		}
+		P.copyright
+		{
+			position: fixed;
+			left: 5px;
+			bottom: 5px;
+			margin-top: 25px;
+		}
+		IMG.fox
+		{
+			position: fixed;
+			left: 5px;
+			top: 5px;
+		}
+		#out_table
+		{
+			margin-left:auto;
+			margin-right: auto;
+			margin: 25px;
+		}
+		#instructions
+		{
+			margin-left: auto;
+			margin-right: auto;
+			width: 50em;
+		}
+		H1.page_title{
+			top: 5px;
+			text-align: center;
+		}
+		#messages
+		{
+			float: top;
+			border:solid 2px #b7ddf2;
+			background:#ebf4fb;
+			margin: 10px;
+			margin-left: auto;
+			margin-right: auto;
+		}
+		#messages.status
+		{
+			color: #390;
+			text-align: center;
+		}
+		#messages.error
+		{
+			color: #f00;
+			text-align: center;
+		}
+		p.interact
+		{
+			margin:0 auto;
+			width:500px;
+			padding:14px;
+		}
+		p, h1, form, button{border:0; margin:0; padding:0;}
+		p.spacer{clear:both; height:1px;}
+		/* ----------- My Form ----------- */
+		.myform
+		{
+			margin:0 auto;
+			width:700px;
+			padding:14px;
+		}
+		/* ----------- stylized ----------- */
+		#stylized
+		{
+			border:solid 2px #b7ddf2;
+			background:#ebf4fb;
+		}
+		#stylized h1
+		{
+			font-size:14px;
+			font-weight:bold;
+			margin-bottom:8px;
+		}
+		#stylized p
+		{
+			font-size:11px;
+			color:#666666;
+			margin-bottom:20px;
+			border-bottom:solid 1px #b7ddf2;
+			padding-bottom:10px;
+		}
+		#stylized label
+		{
+			display:table-cell;
+			font-weight:bold;
+			text-align:left;
+			width:140px;
+			float:none;
+		}
+		#stylized .small
+		{
+			color:#666666;
+			display:table-row;
+			font-size:11px;
+			font-weight:normal;
+			text-align:left;
+			width:140px;
+			float: left;
+		}
+		#stylized input
+		{
+			float:left;
+			font-size:12px;
+			padding:4px 2px;
+			border:solid 1px #aacfe4;
+			width:200px;
+			margin:2px 0 20px 10px;
+		}
+		#stylized button
+		{
+			clear:both;
+			margin-left:150px;
+			width:125px;
+			height:31px;
+			background:#666666 url(img/button.png) no-repeat;
+			text-align:center;
+			line-height:31px;
+			color:#FFFFFF;
+			font-size:11px;
+			font-weight:bold;
+		}
+	    </style>
+	</head>
+	<body>
+		<H1 class="page_title">[% template.title or site.title %]</H1>
+		<IMG class="fox" src="[% c.uri_for('/static/images/FoxPrimer.png') %]" />
+		<p>
+			<UL class="navigation">
+			<li><a href="[% c.uri_for('/') %]">Home Page</a></li>
+			<li><a href="[% c.uri_for('mrna_primer_design_shell') %]">Create qPCR Primers</a></li>
+			<!--						<li><a href="[% c.uri_for('validated_primer_entry') %]">Enter Validated qPCR Primers</a></li> -->
+			</UL>
+		</p>
+		<p>[% content %]</p>
+		<p id="messages" class="interact">
+			Status Messages:
+			<span class="status">[% status_msg %]</span>
+			<span class="error">[% error_msg %]</span>
+		</p>
+		<P class="copyright">Copyright 2012 Jason R. Dobson</P>
+	</body>
+		
+
+</html>
+
