@@ -1,0 +1,68 @@
+[% USE Dumper %]
+[% WRAPPER default.tt title = c.config.name ; END %]
+[% META title = 'Validated qPCR Primer Entry' %]
+<div id="stylized" class="myform">
+<form action="/validated_primers_entry" method="post" enctype="multipart/form-data">
+	<table>
+		<tr>
+			<blockquote>Please upload a text file with the relevant information about your validated primers.<br /><br />
+				    The data should be seperated by tabs, and in the order defined below:<br /><br />
+			</blockquote>
+		</tr>
+	</table>
+	<input type="hidden" name="form_submit" value="yes">
+	<input type="file" name="primer_file" />
+	<p>
+		<button type="submit" value="send">Submit Form!</button>
+	</p>
+	<table border=1 style="text-align: center"> 
+		<tr>
+			<th>Primer Type</th>
+			<th>Left Primer Sequence</th>
+			<th>Right Primer Sequence</th>
+			<th>Accession</th>
+			<th>Your name</th>
+			<th>Left Primer ChIP Location</th>
+			<th>Right Primer ChIP Location</th>
+			<th>Efficiency</th>
+			<th>Validation Notes</th>
+			<th>Citation</th>
+		</tr>
+		<tr>
+			<td>Required</td>
+			<td>Required</td>
+			<td>Required</td>
+			<td>Required</td>
+			<td>Required</td>
+			<td>Required for ChIP primers</td>
+			<td>Required for ChIP primers</td>
+			<td>Required</td>
+			<td></td>
+			<td></td>
+		</tr>
+	</table>
+	<p>
+		<p style="margin-left: 1.5em; font-size: large;"><b>Instructions for each field:</b></p>
+		<b>Primer Type:</b>
+		<p style="margin-left: 1.5em">Enter the type of primer pair. Acceptable input in this field is either "mrna" or "chip".</p>
+		<b>Left Primer Sequence:</b>
+		<p style="margin-left: 1.5em">Enter the left primer sequence. Acceptable input includes only "A", "T", "G", or "C".</p>
+		<b>Right Primer Sequence:</b>
+		<p style="margin-left: 1.5em">Enter the left primer sequence. Acceptable input includes only "A", "T", "G", or "C".</p>
+		<b>Accession:</b>
+		<p style="margin-left: 1.5em">Enter a valid NCBI mRNA accession.<br/>For ChIP primers, this will be used to annotate the primer pair location relative to transcriptional start site.<br/>For mRNA primers, this will be used to determine where the primers fall relative to intron-exon junctions.</p>
+		<b>Your Name:</b>
+		<p style="margin-left: 1.5em">Enter your name.</p>
+		<b>Left Primer ChIP Location</b>
+		<p style="margin-left: 1.5em">If the primer pair is for ChIP qPCR, enter the location of the primer relative to the transcriptional start site. For example, if the primer is 250bp upstream of the transcriptional start site, enter "-250" in this field.</p>
+		<b>Right Primer ChIP Location</b>
+		<p style="margin-left: 1.5em">If the primer pair is for ChIP qPCR, enter the location of the primer relative to the transcriptional start site. For example, if the primer is 250bp upstream of the transcriptional start site, enter "-250" in this field.</p>
+		<b>Efficiency</b>
+		<p style="margin-left: 1.5em">Enter the experimentally determined qPCR efficiency.</p>
+		<b>Validation Notes</b>
+		<p style="margin-left: 1.5em">Enter any relevant information related to primer pair validation.</p>
+		<b>Citation:</b>
+		<p style="margin-left: 1.5em">Enter any publications that this primer pair was used in.</p>
+	</p>
+</form>
+</div>

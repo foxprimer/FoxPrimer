@@ -66,7 +66,6 @@ sub create_primers {
 		foreach my $gis_and_coordinates_line ( @{$accessions->{$accession}} ) {
 			my ($rna_accession, $rna_gi, $dna_gi, $dna_start, $dna_stop,
 				$orientation) = split(/\t/, $gis_and_coordinates_line);
-			print "RNA ACCESSION $rna_accession\nORIENTATION $orientation\n";
 			my ($description, $rna_object, $dna_object) = FoxPrimer::Model::Genbank_Retreival->get_objects($gis_and_coordinates_line);		
 			my ($rna_fh, $dna_fh) = FoxPrimer::Model::Create_Fasta_Files->write_to_fasta($rna_accession, $rna_object, $dna_object);
 			my ($coordinates) = FoxPrimer::Model::Sim4_Alignment->sim4_alignment($rna_fh, $dna_fh);

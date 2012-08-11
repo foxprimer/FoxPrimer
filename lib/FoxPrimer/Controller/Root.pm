@@ -41,7 +41,7 @@ sub index :Path :Args(0) {
 	);
 }
 
-=head2 mrna_primer_design
+=head2 mrna_primer_design_shell
 
 Form for entering mRNA accessions and returning designed primers
 to the user.
@@ -55,6 +55,13 @@ sub mrna_primer_design_shell :Local {
 			status_msg	=>	'Please fill out the form below to begin making primers',
 	);
 }
+
+=head2 mrna_primer_design
+
+This is the hidden subroutine/webpage, which checks the information entered by
+the user and sends it to the business model to be processed and returned.
+
+=cut
 
 sub mrna_primer_design :Chained('/') :PathPart('mrna_primer_design') :Args(0) {
 	# Default paramets passed to a zero-argument part path
@@ -124,7 +131,8 @@ sub mrna_primer_design :Chained('/') :PathPart('mrna_primer_design') :Args(0) {
 					# This subroutine checks the database of accessions, gis and genomic
 					# coordinates for the user-entered accessions, returns an arrayref of
 					# accessions not found in the database
-					my ($valid_accessions, $list_of_found_accessions);
+					my $valid_accessions = {};
+					my $list_of_found_accessions = {};
 					my $invalid_accessions = [];
 					my $rs = $c->model('Valid_mRNA::Gene2accession')->search({
 							-or	=>	[
@@ -153,7 +161,7 @@ sub mrna_primer_design :Chained('/') :PathPart('mrna_primer_design') :Args(0) {
 							push (@$invalid_accessions, $gene);
 						}
 					}
-					if ( defined (%$valid_accessions) ) {
+					if ( %$valid_accessions ) {
 						my $number_of_valid_accessions = 0;
 						foreach my $valid_accession ( keys $valid_accessions ) {
 							$number_of_valid_accessions++;
@@ -206,6 +214,62 @@ sub mrna_primer_design :Chained('/') :PathPart('mrna_primer_design') :Args(0) {
 			}
 		}
 	}
+}
+
+=head2 validated_primers_entry_shell
+
+This is the form to enter primers which have been validated experimentally.
+
+=cut
+
+sub validated_primers_entry_shell :Local {
+	my ($self, $c) = @_;
+	$c->stash(
+			template	=>	'validated_primers.tt',
+			status_msg	=>	'Please fill out the form below to enter validated primers',
+	);
+}
+
+=head2 validated_primers_entry
+
+This is the hidden subroutine, which accepts the file uploaded by the user. The data in the file is checked
+for accuracy and content before being sent to the business model to validate the primers, and store them
+in the validated primers database.
+
+=cut
+
+sub validated_primers_entry :Chained('/') :PathPart('validated_primers_entry') :Args(0) {
+	my ($self, $c) = @_;
+	if ( $c->request->parameters->{form_submit} eq 'yes' ) {
+		if ( my $upload = $c->request->upload('primer_file') ) {
+			my $primers_file = $upload->filename;
+			my $target = "tmp/upload/$primers_file";
+			unless ( $upload->link_to($target) || $upload->copy_to($target) ) {
+				$c->stash(
+					template	=>	'validated_primers.tt',
+					error_msg	=>	"Failed to copy '$primers_file' to  '$target': $!",
+				);
+			}
+			`rm $target`;
+			$c->stash(
+				template	=>	'validated_primers.tt',
+				status_msg	=>	"The file $primers_file was properly uploaded",
+			);
+		} else {
+			$c->stash(
+				template	=>	'validated_primers.tt',
+				error_msg	=>	"You must enter a file to upload",
+			);
+		}
+	} else {
+		$c->stash(
+			template	=>	'validated_primers.tt',
+			error_msg	=>	"You have not entered file to upload",
+		);
+	}
+	$c->stash(
+		template	=>	'validated_primers.tt',
+	);
 }
 
 =head2 default

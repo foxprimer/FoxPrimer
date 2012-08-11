@@ -67,7 +67,7 @@
 		.myform
 		{
 			margin:0 auto;
-			width:700px;
+			width:750px;
 			padding:14px;
 		}
 		/* ----------- stylized ----------- */
@@ -139,13 +139,13 @@
 			<UL class="navigation">
 			<li><a href="[% c.uri_for('/') %]">Home Page</a></li>
 			<li><a href="[% c.uri_for('mrna_primer_design_shell') %]">Create qPCR Primers</a></li>
-			<!--						<li><a href="[% c.uri_for('validated_primer_entry') %]">Enter Validated qPCR Primers</a></li> -->
+			<li><a href="[% c.uri_for('validated_primers_entry_shell') %]">Enter Validated qPCR Primers</a></li>
 			</UL>
 		</p>
 		<p>[% content %]</p>
 		<p id="messages">
 		Status Messages:<br>
-			<span id="messages" class="status">[% status_msg %]</span>
+			<span id="messages" class="status">[% status_msg %]</span><br/>
 			<span id="messages" class="error">[% error_msg %]</span>
 		</p>
 		<P class="copyright">Copyright 2012 Jason R. Dobson</P>
