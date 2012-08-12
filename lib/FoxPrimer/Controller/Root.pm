@@ -189,6 +189,7 @@ sub mrna_primer_design :Chained('/') :PathPart('mrna_primer_design') :Args(0) {
 							$c->stash(
 									structure		=>	$structure,
 									error_msg		=>	"Unfortunately, the following accessions were not found in our NCBI:gene2accession database: $error_string",
+									status_msg		=>	"Your primers have been designed!",
 									primer_results	=>	$primer_results,
 									template		=>	'mrna_primer_design.tt',
 							);
@@ -214,6 +215,20 @@ sub mrna_primer_design :Chained('/') :PathPart('mrna_primer_design') :Args(0) {
 			}
 		}
 	}
+}
+
+=head2 chip_primer_design_shell
+
+This is the form to enter information for the design of ChIP primers.
+
+=cut
+
+sub chip_primer_design_shell :Local {
+	my ($self, $c) = @_;
+	$c->stash(
+			template	=>	'chip_primer_design.tt',
+			status_msg	=>	'Please fill out the form below to begin making primers',
+	);
 }
 
 =head2 validated_primers_entry_shell

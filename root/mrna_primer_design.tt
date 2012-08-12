@@ -1,15 +1,8 @@
 [% USE Dumper %]
 [% WRAPPER default.tt title = c.config.name ; END %]
-[% META title = 'Real Time qPCR Primer Design' %]
-<div id="stylized" class="myform">
+[% META title = 'cDNA Primer Design' %]
+<div id="stylized" class="myform" align="center">
 <form name="real_time_qPCR_primer_design" method=POST action="mrna_primer_design">
-       <table>
-	<tr>
-		<td><label>Species</td>
-		<td><span class="small">Please select which mispriming library to use:</span>
-		<td><select name="species"><option value="Human">Human</option><option value="Rodent and Simple">Rodent and Simple</option>
-	</tr>
-       </table>
 
        <table>
         <tr>
@@ -21,6 +14,13 @@
         </tr>
        </table>
 
+       <table>
+	<tr>
+		<td><label>Species</td>
+		<td><span class="small">Please select which mispriming library to use:</span>
+		<td><select name="species"><option value="Human">Human</option><option value="Rodent and Simple">Rodent and Simple</option>
+	</tr>
+       </table>
        <table>
 	<tr>
 	       <td><label>Accessions</td>
@@ -46,12 +46,9 @@
 
        <table>
         <tr><button type="submit">Submit Query!</button></tr>
-       </table>
-
-       <div class="spacer"></div>
-</form>
-</div>
-	<table style="margin:25px;" border="1">
+	</table>
+	<p></p>
+	<table border="1">
 		<th>Primer Type</th>
 		<th>mRNA Description</th>
 		<th>NCBI Accession</th>
@@ -85,3 +82,5 @@
 			</tr>
 		[% END %]
 	</table>
+</form>
+</div>

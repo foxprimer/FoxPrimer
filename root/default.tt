@@ -4,42 +4,57 @@
 	    <style type="text/css">
 		body
 		{
-		font-family:"Lucida Grande", "Lucida Sans Unicode", Verdana, Arial, Helvetica, sans-serif;
-		font-size:12px;
+			font-family:"Lucida Grande", "Lucida Sans Unicode", Verdana, Arial, Helvetica, sans-serif;
+			font-size:12px;
+			padding-left: auto;
 		}
 		UL.navigation
 		{
-			position: relative;
-			top: 170px;
+			position: absolute;
+			top: 190px;
 			left: 5px;
+			background: #ebf4fb; 
+			border:solid 2px #b7ddf2;
+			padding: 15px;
+			list-style-type: none;
 		}
 		P.copyright
 		{
 			position: fixed;
-			left: 5px;
+			left: 20px;
 			bottom: 5px;
 			margin-top: 25px;
+			z-index: 5;
 		}
 		IMG.fox
 		{
-			position: relative;
-			left: 35px;
-			top: 150px;
+			position: absolute;
+			left: 40px;
+			top: 50px;
 		}
-		#instructions
+		IMG.catalyst
 		{
+			position: absolute;
+			right: 40px;
+			top: 87px;
+		}
+		H1.title
+		{
+			position: relative;
+			top: 75px;
+			text-align: center; 
+			color: green; 
+			background: #ebf4fb; 
+			border:solid 2px #b7ddf2;
+			width: 500px; 
+			padding: 15px; 
 			margin-left: auto;
 			margin-right: auto;
-			width: 50em;
-		}
-		H1.page_title{
-			position: relative;
-			top 50px;
-			text-align: center;
 		}
 		#messages
 		{
-			float: top;
+			position: relative;
+			top: 210px;
 			border:solid 2px #b7ddf2;
 			background:#ebf4fb;
 			margin: 10px;
@@ -58,17 +73,18 @@
 			color: #f00;
 			text-align: center;
 		}
-		.interact
-		{
-		}
 		p, h1, form, button{border:0; margin:0; padding:0;}
 		p.spacer{clear:both; height:1px;}
 		/* ----------- My Form ----------- */
 		.myform
 		{
-			margin:0 auto;
-			width:750px;
-			padding:14px;
+			position: relative;
+			top: 220px;
+			width: auto;
+			margin-left: auto;
+			margin-right: auto;
+			padding:20px;
+			margin-bottom: 50px;
 		}
 		/* ----------- stylized ----------- */
 		#stylized
@@ -110,7 +126,6 @@
 		}
 		#stylized input
 		{
-			float:left;
 			font-size:12px;
 			padding:4px 2px;
 			border:solid 1px #aacfe4;
@@ -120,9 +135,11 @@
 		#stylized button
 		{
 			clear:both;
-			margin-left:150px;
 			width:125px;
 			height:31px;
+			position: relative;
+			margin-left: auto;
+			margin-right: auto;
 			background:#666666 url(img/button.png) no-repeat;
 			text-align:center;
 			line-height:31px;
@@ -134,21 +151,23 @@
 	</head>
 	<body>
 		<p>
-			<H1 class="page_title">[% template.title or site.title %]</H1>
 			<IMG class="fox" src="[% c.uri_for('/static/images/FoxPrimer.png') %]" />
+			<IMG class="catalyst" src="[% c.uri_for('/static/images/btn_120x50_powered.png') %]" />
 			<UL class="navigation">
 			<li><a href="[% c.uri_for('/') %]">Home Page</a></li>
-			<li><a href="[% c.uri_for('mrna_primer_design_shell') %]">Create qPCR Primers</a></li>
+			<li><a href="[% c.uri_for('mrna_primer_design_shell') %]">Create cDNA Primers</a></li>
+			<li><a href="[% c.uri_for('chip_primer_design_shell') %]">Create ChIP Primers</a></li>
 			<li><a href="[% c.uri_for('validated_primers_entry_shell') %]">Enter Validated qPCR Primers</a></li>
+			<li><a href="[% c.uri_for('/') %]">Home Page</a></li>
+			<li><a href="[% c.uri_for('/') %]">Home Page</a></li>
 			</UL>
 		</p>
-		<p>[% content %]</p>
-		<p id="messages">
-		Status Messages:<br>
-			<span id="messages" class="status">[% status_msg %]</span><br/>
-			<span id="messages" class="error">[% error_msg %]</span>
-		</p>
 		<P class="copyright">Copyright 2012 Jason R. Dobson</P>
+		<H1 class="title">[% template.title or site.title %]</H1>
+		<p id="messages">Status Messages:</p>
+		<p id="messages" class="status">[% status_msg %]</p>
+		<p id="messages" class="error">[% error_msg %]</p>
+		<p>[% content %]</p>
 	</body>
 		
 

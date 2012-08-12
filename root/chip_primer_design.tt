@@ -1,0 +1,7 @@
+[% USE Dumper %]
+[% WRAPPER default.tt title = c.config.name ; END %]
+[% META title = 'ChIP Primer Design' %]
+<div id="stylized" class="myform" align="center">
+<form action="/chip_primer_design" method="post" enctype="multipart/form-data">
+</form>
+</div>

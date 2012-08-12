@@ -1,20 +1,15 @@
 [% USE Dumper %]
 [% WRAPPER default.tt title = c.config.name ; END %]
 [% META title = 'Validated qPCR Primer Entry' %]
-<div id="stylized" class="myform">
+<div id="stylized" class="myform" align="center">
 <form action="/validated_primers_entry" method="post" enctype="multipart/form-data">
-	<table>
-		<tr>
-			<blockquote>Please upload a text file with the relevant information about your validated primers.<br /><br />
-				    The data should be seperated by tabs, and in the order defined below:<br /><br />
-			</blockquote>
-		</tr>
-	</table>
+	<blockquote>
+		Please upload a text file with the relevant information about your validated primers.<br /><br />
+		The data should be seperated by tabs, and in the order defined below:<br /><br />
+	</blockquote>
 	<input type="hidden" name="form_submit" value="yes">
-	<input type="file" name="primer_file" />
-	<p>
-		<button type="submit" value="send">Submit Form!</button>
-	</p>
+	<input type="file" name="primer_file" >
+	<button type="submit" value="send">Upload file.</button>
 	<table border=1 style="text-align: center"> 
 		<tr>
 			<th>Primer Type</th>
