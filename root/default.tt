@@ -130,7 +130,7 @@
 			padding:4px 2px;
 			border:solid 1px #aacfe4;
 			width:200px;
-			margin:2px 0 20px 10px;
+			margin:7px 0 10px 10px;
 		}
 		#stylized button
 		{

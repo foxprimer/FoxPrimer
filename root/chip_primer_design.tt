@@ -3,5 +3,59 @@
 [% META title = 'ChIP Primer Design' %]
 <div id="stylized" class="myform" align="center">
 <form action="/chip_primer_design" method="post" enctype="multipart/form-data">
+	<p>
+		Please fill out the form below and upload a set of genomic coordinates in BED extensible format. See <a href=http://genome.ucsc.edu/FAQ/FAQformat.html#format1>UCSC BED Format</a> for specifications.
+	</p>
+	<p>
+		The bed coordinates should have a peak name in the fourth column, so that you can easily determine the peak to which designed primers correspond.
+	</p>
+	<p>
+		At this point, ChIP primers can only be designed for <a href=http://hgdownload.cse.ucsc.edu/downloads.html#mouse>mm9</a> and <a href=http://hgdownload.cse.ucsc.edu/downloads.html#human>hg19</a>. Please check back for updates.
+	</p>
+	<p>
+		If a set of peak summits is uploaded, primers will be designed around these coordinates.<br/>If a set of larger intervals are uploaded, the user can do one of two things: <b>1)</b> By default the best 5 primers in the interval will be returned to the user. <b>2)</b> The user can pick a position weight matrix from the dropdown list, and 5 primers will be designed around each match. 
+	</p>
+	<p>
+		If you have a custom motif not found in the dropdown list, you can can upload a <a href=http://meme.nbcr.net/meme/doc/meme-format.html#min_format>FIMO-formatted motif file</a> by navigating to the Motif Upload page.
+	<table>
+		<tr>
+			<td><label>Cell Line</td>
+			<td><span class="small">Enter the cell line or source of the data:</span></label></td>
+			<td><input type="text" name="cell_line" value="" title="Cell Line"></td>
+		</tr>
+		<tr>
+			<td><label>Antibody or Treatment</td>
+			<td><span class="small">Enter the antibody or treatment used:</span></label></td>
+			<td><input type="text" name="antibody" value="" title="Antibody or Treatment"></td>
+		</tr>
+		<tr>
+			<td><label>Genome</td>
+			<td><span class="small">Please select the genome to which the reads are mapped:</span>
+			<td><select name="genome"><option value="hg19">hg19</option><option value="mm9">mm9</option>
+		</tr>
+		<tr>
+			<td><label>Product size</td>
+			<td><span class="small">Enter the desired product range for your qPCR reaction (default 70-150):</span></label></td>
+			<td><input type="text" name="product_size" value="70-150" title="Product Size"></td>
+		</tr>
+		<tr>
+			<td><label>Peaks</td>
+			<td><span class="small">Upload a BED file of coordinates:</span></label></td>
+			<td>
+				<input type="hidden" name="peaks_submit" value="yes">
+				<input type="file" name="peaks">
+			</td>
+		</tr>
+		<tr>
+			<td><label>Known Motif</td>
+			<td><span class="small">Please select a motif (optional):</span>
+			<td>
+				<select name="known_motif"> [% FOREACH motif IN motifs %]
+					<option [% IF default_motif == motif %]selected [%END%]>[% motif %]</option>
+				[% END %]
+			</td>
+		</tr>
+	</table>
+	<button type="submit" value="send">Design ChIP Primers!</button>
 </form>
 </div>

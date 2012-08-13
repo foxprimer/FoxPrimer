@@ -3,18 +3,19 @@
 [% META title = 'cDNA Primer Design' %]
 <div id="stylized" class="myform" align="center">
 <form name="real_time_qPCR_primer_design" method=POST action="mrna_primer_design">
-
-       <table>
-        <tr>
-		<blockquote>Please enter a comma seperated list of valid NCBI mRNA accessions.<br /><br />
-		            The string of accessions should be in the format NM_(number),NM_(number)<br /><br />
-		            This program will try to design three types of primer pairs based on location of the primers relative to splice sites and intron size<br /><br />
-		            These types are <b>Junction Spanning</b>, <b>On either side of an intron greater than a specified size</b>, and <b>Intra-exon primers</b><br />
-		</blockquote>
-        </tr>
-       </table>
-
-       <table>
+	<p>
+		Please enter a comma seperated list of valid NCBI mRNA accessions.
+	</p>
+	<p>
+		The string of accessions should be in the format NM_(number),NM_(number).
+	</p>
+	<p>
+		This program will try to design three types of primer pairs based on location of the primers relative to splice sites and intron size.
+	</p>
+	<p>
+		These types are: <b>Junction Spanning</b>, <b>On either side of an intron greater than a specified size</b>, and <b>Intra-exon primers</b>.
+	</p>
+	<table>
 	<tr>
 		<td><label>Species</td>
 		<td><span class="small">Please select which mispriming library to use:</span>
@@ -24,7 +25,7 @@
        <table>
 	<tr>
 	       <td><label>Accessions</td>
-	       <td><span class="small">Enter the accessions in a comma seperated list:</span></label></td>
+	       <td><span class="small">Enter the accessions in a comma separated list:</span></label></td>
 	       <td><input type="text" name="genes" value="" title="Accessions"></td>
         </tr>
 	<tr>
@@ -42,12 +43,11 @@
 	       <td><span class="small">Enter the maximum number of primer pairs to design for each of the three types:</span></label></td>
 	       <td><input type="text" name="number_per_type" value="5" title="Number Per Type"></td>
         </tr>
-       </table>
-
-       <table>
-        <tr><button type="submit">Submit Query!</button></tr>
 	</table>
 	<p></p>
+	<p>
+		<button type="submit">Submit Query!</button>
+	</p>
 	<table border="1">
 		<th>Primer Type</th>
 		<th>mRNA Description</th>

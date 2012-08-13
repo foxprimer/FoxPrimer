@@ -1,0 +1,29 @@
+MEME version 4.4
+
+ALPHABET= ACGT
+
+Background letter frequencies (from uniform background):
+
+A 0.25000 C 0.25000 G 0.25000 T 0.25000 
+
+MOTIF MA0133.1 BRCA1
+
+log-odds matrix: alength= 4 w= 7 E= 0
+    48	     3	   -10	   -62	
+  -143	   170	  -243	  -243	
+   193	  -343	  -343	-10000	
+   174	  -243	  -143	  -343	
+   -62	   143	   -84	  -343	
+    82	    38	   -62	  -184	
+  -184	   103	    48	  -184	
+
+letter-probability matrix: alength= 4 w= 7 nsites= 43 E= 0
+  0.348837	  0.255814	  0.232558	  0.162791	
+  0.093023	  0.813953	  0.046512	  0.046512	
+  0.953488	  0.023256	  0.023256	  0.000000	
+  0.837209	  0.046512	  0.093023	  0.023256	
+  0.162791	  0.674419	  0.139535	  0.023256	
+  0.441860	  0.325581	  0.162791	  0.069767	
+  0.069767	  0.511628	  0.348837	  0.069767	
+
+URL http://jaspar.genereg.net/cgi-bin/jaspar_db.pl?ID=MA0133.1&rm=present&collection=CORE

@@ -1,0 +1,29 @@
+MEME version 4.4
+
+ALPHABET= ACGT
+
+Background letter frequencies (from uniform background):
+
+A 0.25000 C 0.25000 G 0.25000 T 0.25000 
+
+MOTIF MA0429.1 YLL054C
+
+log-odds matrix: alength= 4 w= 7 E= 0
+-10000	   200	-10000	-10000	
+-10000	-10000	   200	-10000	
+-10000	-10000	   200	-10000	
+   -24	   137	   -82	-10000	
+  -147	   140	   -64	  -147	
+   -94	  -232	   162	  -232	
+   119	   -81	  -181	   -22	
+
+letter-probability matrix: alength= 4 w= 7 nsites= 100 E= 0
+  0.000000	  1.000000	  0.000000	  0.000000	
+  0.000000	  0.000000	  1.000000	  0.000000	
+  0.000000	  0.000000	  1.000000	  0.000000	
+  0.212121	  0.646465	  0.141414	  0.000000	
+  0.090000	  0.660000	  0.160000	  0.090000	
+  0.130000	  0.050000	  0.770000	  0.050000	
+  0.571429	  0.142857	  0.071429	  0.214286	
+
+URL http://jaspar.genereg.net/cgi-bin/jaspar_db.pl?ID=MA0429.1&rm=present&collection=CORE
