@@ -412,6 +412,8 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 						);
 					}
 				}
+				# Push the interval line into the Structure to be passed to the Catalyst Model
+				push (@{$structure->{bed_file}}, $line);
 				# Increase the line number at the end of the loop
 				$bed_line_number++;
 			}
@@ -430,8 +432,92 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 			} else {
 				$structure->{design_type} = 'summit';
 			}
-			# Now that the structure is filled with relevant information, now determine where the peaks/intervals are located
-			# relevant to transcriptional start sites
+			# If the primers will be designed around motifs, determine the positions of the motifs within each interval using FIMO
+			if ( $structure->{design_type} eq 'motif' ) {
+				# Iterate through the BED file, calling FIMO with the user-designated motif. If no motif is discovered in the interval
+				# return these coordinates to the user in the error message
+				# Predeclare an Array Reference to hold the locations where a motif is not found.
+				my $no_motif_locations = [];
+				# Predeclare a Hash Reference to hold the intervals and the motif locations within each interval
+				my $motif_location_hash = {};
+				# Make a call to the Catalyst Model for FIMO
+				foreach my $line ( @{$structure->{bed_file}} ) {
+					my ($chromosome, $start, $stop, $peak_name) = split(/\t/, $line);
+					my $fimo = $c->model('FIMO')->new(
+						chromosome	=>	$chromosome,
+						start		=>	$start,
+						stop		=>	$stop,
+						motif_name	=>	$structure->{motif_name},
+						genome		=>	$c->request->parameters->{genome},
+					);
+					my ($motifs_found, $motif_positions) = $fimo->run;
+					if ( $motifs_found == 1 ) {
+						foreach my $motif_location_found (@$motif_positions) {
+							push (@{$motif_location_hash->{$peak_name}}, $motif_location_found);
+						}
+					} elsif ( $motifs_found == 0 ) {
+						push (@$no_motif_locations, $peak_name);
+					}
+				}
+				# Store the motifs location hash in the $structure
+				$structure->{locations_by_peak} = $motif_location_hash;
+				# Store the peaks that do not contain the user-defined motif in the $structure as
+				# a ", "-delimited string
+				$structure->{peak_names_with_no_motif}  = join(", ", @$no_motif_locations);
+				# If there are no motifs discovered in the intervals specified return the 
+				# peak_names_with_no_motif string in the error_msg
+				unless ( %$motif_location_hash ) {
+					$c->stash(
+						template	=>	'chip_primer_design.tt',
+						error_msg	=>	"Unfortunately, no matches were found for the $structure->{motif_name} motif in any of these intervals $structure->{peak_names_with_no_motif}.\nPlease choose a different motif, or none to design ChIP primers in the interval.",
+						motifs		=>	$c->model('Available_Motifs')->available_motifs,
+					);
+				}
+			} else {
+				# Pre-declare a temporary Hash Reference to hold locations by peak name
+				my $temp_locations_by_peak_name = {};
+				# Store the locations in the $structure
+				foreach my $line ( @{$structure->{bed_file}} ) {
+					my ($chromosome, $start, $stop, $peak_name) = split(/\t/, $line);
+					$temp_locations_by_peak_name->{$peak_name} = join("\t", $chromosome, $start, $stop);
+				}
+				$structure->{locations_by_peak} = $temp_locations_by_peak_name;
+			}
+			# Create an Array Ref to hold the locations where primers were unable to be designed
+			my $unable_to_make_primers = [];
+			# Design primers by passing the relevant information to the Catalyst Model ChIP_Primer_Design
+			# Primers will only be designed for matched motif regions, if a motif was specified.
+			foreach my $design_location ( keys %{$structure->{locations_by_peak}} ) {
+				foreach my $location_string (@{$structure->{locations_by_peak}->{$design_location}}) {
+					my ($chromosome, $start, $stop) = split(/\t/, $location_string);
+					my $chip_primer_design = $c->model('ChIP_Primer_Design')->new(
+						primer_type			=>	$structure->{design_type},
+						chromosome			=>	$chromosome,
+						start				=>	$start,
+						stop				=>	$stop,
+						peak_name			=>	$design_location,
+						product_size		=>	$structure->{product_size},
+						genome		=>	$c->request->parameters->{genome},
+					);
+					my ($primers_designed_boolean, $created_chip_primers) = $chip_primer_design->design_primers;
+					if ( $primers_designed_boolean == 1 ) {
+						push (@$unable_to_make_primers, {$design_location	=>	$chromosome . ':' . $start . '-' . $stop});
+					} else {
+						# Add the created ChIP primers to the structure
+						$structure->{created_chip_primers}{$design_location}{$location_string} = $created_chip_primers;
+					}
+				}
+			}
+			# Create a string to return to the user if there were regions where primers were not able to be created
+			my $unable_to_make_primers_string;
+			if ( @$unable_to_make_primers ) {
+				foreach my $design_try ( @$unable_to_make_primers ) {
+					foreach my $location ( keys %$design_try ) {
+						$unable_to_make_primers_string .= "In the peak: $location, coordinates: $design_try->{$location}\n";
+					}
+				}
+			}
+			# Use PeaksToGenes to determine the positions of the primer pairs relative to transcriptional start sites within 100Kb
 			`rm $peaks_fh`;
 			$c->stash(
 				template	=>	'chip_primer_design.tt',
