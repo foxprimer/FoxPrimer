@@ -517,7 +517,9 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 					}
 				}
 			}
-			# Use PeaksToGenes to determine the positions of the primer pairs relative to transcriptional start sites within 100Kb
+			# Enter the primers into the general table in the ChIP_Primers database
+			# Use FoxPrimer::PeaksToGenes (a special version of PeaksToGenes) to determine the positions of the primer pairs 
+			# relative to transcriptional start sites within 100Kb
 			`rm $peaks_fh`;
 			$c->stash(
 				template	=>	'chip_primer_design.tt',
