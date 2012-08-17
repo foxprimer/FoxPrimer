@@ -10,7 +10,9 @@ FoxPrimer::Model::PeaksToGenes::FileStructure - Catalyst Model
 
 =head1 DESCRIPTION
 
-Catalyst Model.
+This module provides a subroutine, which takes the genome as an
+argument and returns an Array Ref of file locations for each
+index.
 
 =head1 AUTHOR
 
@@ -22,6 +24,8 @@ This library is free software. You can redistribute it and/or modify
 it under the same terms as Perl itself.
 
 =cut
+
+
 
 __PACKAGE__->meta->make_immutable;
 
