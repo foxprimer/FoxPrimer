@@ -517,9 +517,69 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 					}
 				}
 			}
+			# If no primers are designed return an error message to the user
+			unless ( %{$structure->{created_chip_primers}} ) {
+				# Create a string to hold the error messages
+				my $no_primers_designed_message = "Unfortunately, no primers were designed for the following reasons:\n";
+				# If there were locations where a motif was not found, add these to the error string
+				if ( $structure->{peak_names_with_no_motif} ) {
+					$no_primers_designed_message .= "No matches were found for the motif $structure->{motif_name} in any of these intervals: $structure->{peak_names_with_no_motif}.\n";
+				}
+				# If primers were not able to be designed flanking a particular motif location, add these to the error string
+				if ( @$unable_to_make_primers ) {
+					$no_primers_designed_message .= "Primers were not able to be made in the following locations:\n";
+					foreach my $design_try ( @$unable_to_make_primers ) {
+						foreach my $location ( keys %$design_try ) {
+							$no_primers_designed_message .= "In the peak: $location, coordinates: $design_try->{$location}\n";
+						}
+					}
+				}
+				$c->stash(
+					template	=>	'chip_primer_design.tt',
+					error_msg	=>	$no_primers_designed_message,
+					motifs		=>	$c->model('Available_Motifs')->available_motifs,
+				);
+			}
 			# Enter the primers into the general table in the ChIP_Primers database
-			# Use FoxPrimer::PeaksToGenes (a special version of PeaksToGenes) to determine the positions of the primer pairs 
-			# relative to transcriptional start sites within 100Kb
+			my $chip_primers_rs = $c->model('Created_ChIP_Primers::ChipPrimerPairsGeneral');
+			foreach my $interval_name ( keys %{$structure->{created_chip_primers}} ) {
+				foreach my $location_string ( keys %{$structure->{created_chip_primers}{$interval_name}} ) {
+					my ($chromosome, $location_start, $location_stop) = split(/\t/, $location_string);
+					foreach my $primer_pair ( keys %{$structure->{created_chip_primers}{$interval_name}{$location_string}} ) {
+						$chip_primers_rs->update_or_create({
+								left_primer_sequence		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{left_primer_sequence},
+								right_primer_sequence		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{right_primer_sequence},
+								left_primer_tm				=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{left_primer_tm},
+								right_primer_tm				=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{right_primer_tm},
+								chromosome					=>	$chromosome,
+								left_primer_five_prime		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{left_primer_5prime},
+								left_primer_three_prime		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{left_primer_3prime},
+								right_primer_five_prime		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{right_primer_5prime},
+								right_primer_three_prime	=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{right_primer_3prime},
+								product_size				=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{product_size},
+								primer_pair_penalty			=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{product_penalty},
+							}
+						);
+						# Retrieve the database row where the primers were entered
+						my $primer_pair_row = $chip_primers_rs->find(
+							{
+								left_primer_sequence		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{left_primer_sequence},
+								right_primer_sequence		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{right_primer_sequence},
+							}
+						);
+						my $primer_pair_id = $primer_pair_row->id;
+						# Use FoxPrimer::PeaksToGenes (a special version of PeaksToGenes) to determine the positions of the primer pairs 
+						# relative to transcriptional start sites within 100Kb
+						my $peaks_to_genes = $c->model('PeaksToGenes')->new(
+							genome		=>	$c->request->parameters->{genome},
+							chromosome	=>	$chromosome,
+							start		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{left_primer_5prime},
+							stop		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{right_primer_5prime},
+						);
+						print Dumper $peaks_to_genes;
+					}
+				}
+			}
 			`rm $peaks_fh`;
 			$c->stash(
 				template	=>	'chip_primer_design.tt',

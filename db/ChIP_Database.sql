@@ -10,7 +10,8 @@ CREATE TABLE chip_primer_pairs_general (
 	right_primer_five_prime INTEGER,
 	right_primer_three_prime INTEGER,
 	product_size INTEGER,
-	primer_pair_penalty NUMBER
+	primer_pair_penalty NUMBER,
+	UNIQUE(left_primer_sequence, right_primer_sequence) ON CONFLICT REPLACE
 );
 CREATE TABLE relative_locations (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,

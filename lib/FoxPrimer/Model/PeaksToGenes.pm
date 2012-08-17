@@ -1,6 +1,8 @@
 package FoxPrimer::Model::PeaksToGenes;
 use Moose;
 use namespace::autoclean;
+use FoxPrimer::Model::PeaksToGenes::FileStructure;
+use FoxPrimer::Model::PeaksToGenes::BedTools;
 
 extends 'Catalyst::Model';
 
@@ -51,6 +53,35 @@ has intersect_bed_executable	=>	(
 	required	=>	1,
 	lazy		=>	1,
 );
+
+has chromosome	=>	(
+	is		=>	'rw',
+	isa		=>	'Str',
+);
+
+has start	=>	(
+	is		=>	'rw',
+	isa		=>	'Int',
+);
+
+has stop	=>	(
+	is		=>	'rw',
+	isa		=>	'Int',
+);
+
+=head2 annotate_primer_pairs
+
+This is the main subroutine called by the Catalyst controller.
+
+This module controls the logic flow to determine the locations
+of designed ChIP primer pairs relaive to the transcriptional
+start sites of all transcripts.
+
+=cut
+
+sub annotate_primer_pairs {
+	my $self = shift;
+}
 
 __PACKAGE__->meta->make_immutable;
 
