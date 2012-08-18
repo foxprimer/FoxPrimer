@@ -48,39 +48,41 @@
 	<p>
 		<button type="submit">Submit Query!</button>
 	</p>
-	<table border="1">
-		<th>Primer Type</th>
-		<th>mRNA Description</th>
-		<th>NCBI Accession</th>
-		<th>Primer Pair Number</th>
-		<th>Left Primer Sequence</th>
-		<th>Right Primer Sequence</th>
-		<th>Left Primer Tm</th>
-		<th>Right Primer Tm</th>
-		<th>Left Primer Coordinates</th>
-		<th>Right Primer Coordinates</th>
-		<th>Product Size</th>
-		<th>Primer Pair Penalty</th>
-		<th>Left Primer Position</th>
-		<th>Right Primer Position</th>
-		[%WHILE (primer_row = primer_results.next) %]
-			<tr>
-				<td>[% primer_row.primer_type %]</td>
-				<td>[% primer_row.description %]</td>
-				<td>[% primer_row.mrna %]</td>
-				<td>[% primer_row.primer_pair_number %]</td>
-				<td>[% primer_row.left_primer_sequence %]</td>
-				<td>[% primer_row.right_primer_sequence %]</td>
-				<td>[% primer_row.left_primer_tm %]</td>
-				<td>[% primer_row.right_primer_tm %]</td>
-				<td>[% primer_row.left_primer_coordinates %]</td>
-				<td>[% primer_row.right_primer_coordinates %]</td>
-				<td>[% primer_row.product_size %]</td>
-				<td>[% primer_row.product_penalty %]</td>
-				<td>[% primer_row.left_primer_position %]</td>
-				<td>[% primer_row.right_primer_position %]</td>
-			</tr>
-		[% END %]
-	</table>
+	[% IF primer_results %]
+		<table border="1">
+			<th>Primer Type</th>
+			<th>mRNA Description</th>
+			<th>NCBI Accession</th>
+			<th>Primer Pair Number</th>
+			<th>Left Primer Sequence</th>
+			<th>Right Primer Sequence</th>
+			<th>Left Primer Tm</th>
+			<th>Right Primer Tm</th>
+			<th>Left Primer Coordinates</th>
+			<th>Right Primer Coordinates</th>
+			<th>Product Size</th>
+			<th>Primer Pair Penalty</th>
+			<th>Left Primer Position</th>
+			<th>Right Primer Position</th>
+			[%WHILE (primer_row = primer_results.next) %]
+				<tr>
+					<td>[% primer_row.primer_type %]</td>
+					<td>[% primer_row.description %]</td>
+					<td>[% primer_row.mrna %]</td>
+					<td>[% primer_row.primer_pair_number %]</td>
+					<td>[% primer_row.left_primer_sequence %]</td>
+					<td>[% primer_row.right_primer_sequence %]</td>
+					<td>[% primer_row.left_primer_tm %]</td>
+					<td>[% primer_row.right_primer_tm %]</td>
+					<td>[% primer_row.left_primer_coordinates %]</td>
+					<td>[% primer_row.right_primer_coordinates %]</td>
+					<td>[% primer_row.product_size %]</td>
+					<td>[% primer_row.product_penalty %]</td>
+					<td>[% primer_row.left_primer_position %]</td>
+					<td>[% primer_row.right_primer_position %]</td>
+				</tr>
+			[% END %]
+		</table>
+	[% END %]
 </form>
 </div>

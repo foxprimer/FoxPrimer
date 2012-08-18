@@ -176,9 +176,23 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 locations
 
-# Created by DBIx::Class::Schema::Loader v0.07025 @ 2012-08-17 13:19:04
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:UvugySrIttves0vqjock5g
+Type: many_to_many
+
+Composing rels: L</chip_primer_pairs_relative_locations> -> location
+
+=cut
+
+__PACKAGE__->many_to_many(
+  "locations",
+  "chip_primer_pairs_relative_locations",
+  "location",
+);
+
+
+# Created by DBIx::Class::Schema::Loader v0.07025 @ 2012-08-18 12:46:28
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:rhUa/dySrhfi2xEq5Oyy1A
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

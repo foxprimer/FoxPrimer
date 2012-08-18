@@ -19,16 +19,6 @@
 		If you have a custom motif not found in the dropdown list, you can can upload a <a href=http://meme.nbcr.net/meme/doc/meme-format.html#min_format>FIMO-formatted motif file</a> by navigating to the Motif Upload page.
 	<table>
 		<tr>
-			<td><label>Cell Line</td>
-			<td><span class="small">Enter the cell line or source of the data:</span></label></td>
-			<td><input type="text" name="cell_line" value="" title="Cell Line"></td>
-		</tr>
-		<tr>
-			<td><label>Antibody or Treatment</td>
-			<td><span class="small">Enter the antibody or treatment used:</span></label></td>
-			<td><input type="text" name="antibody" value="" title="Antibody or Treatment"></td>
-		</tr>
-		<tr>
 			<td><label>Genome</td>
 			<td><span class="small">Please select the genome to which the reads are mapped:</span>
 			<td><select name="genome"><option value="hg19">hg19</option><option value="mm9">mm9</option>
@@ -56,6 +46,43 @@
 			</td>
 		</tr>
 	</table>
-	<button type="submit" value="send">Design ChIP Primers!</button>
+	<p></p>
+	<p>
+		<button type="submit" value="send">Design ChIP Primers!</button>
+	</p>
+	[% IF primers %]
+	<table border="1">
+		<th>Left Primer Sequence</th>
+		<th>Right Primer Sequence</th>
+		<th>Chromosome</th>
+		<th>Left Primer 5'-Position</th>
+		<th>Right Primer 5'-Position</th>
+		<th>Product Size</th>
+		<th>Left Primer Length</th>
+		<th>Right Primer Length</th>
+		<th>Left Primer Tm</th>
+		<th>Right Primer Tm</th>
+		<th>Primer Pair Penalty</th>
+		<th>Relative Location(s)</th>
+		[% FOREACH primer IN primers %]
+			<tr>
+				<td>[% primer.left_primer_sequence FILTER upper %]</td>
+				<td>[% primer.right_primer_sequence FILTER upper %]</td>
+				<td>[% primer.chromosome %]</td>
+				<td>[% primer.left_primer_five_prime %]</td>
+				<td>[% primer.right_primer_five_prime %]</td>
+				<td>[% primer.product_size %]</td>
+				<td>[% primer.left_primer_three_prime - primer.left_primer_five_prime %]</td>
+				<td>[% primer.right_primer_five_prime - primer.right_primer_three_prime %]</td>
+				<td>[% primer.left_primer_tm %]</td>
+				<td>[% primer.right_primer_tm %]</td>
+				<td>[% primer.primer_pair_penalty %]</td>
+				<td>
+					[% primer.relative_locations.join(', ') %]
+				</td>
+			</tr>
+		[% END %]
+	</table>
+	[% END %]
 </form>
 </div>

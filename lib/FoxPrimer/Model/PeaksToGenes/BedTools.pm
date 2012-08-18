@@ -42,7 +42,7 @@ sub annotate_peaks {
 			my @intersected_peaks = `$intersect_bed_executable -wb -a $summits_file -b $index_file`;
 			foreach my $intersected_peak (@intersected_peaks) {
 				chomp ($intersected_peak);
-				my ($summit_chr, $summit_start, $summit_end, 
+				my ($summit_chr, $summit_start, $summit_end, $summit_name,
 					$index_chr, $index_start, $index_stop, $index_name, $index_score,
 					$index_strand) = split(/\t/, $intersected_peak);
 				my $index_gene;
@@ -50,7 +50,7 @@ sub annotate_peaks {
 					$index_gene = $1;
 				}
 				if ( $index_gene ) {
-					$indexed_peaks->{$index_gene}{$peak_number}++;
+					push(@{$indexed_peaks->{$index_gene}{$peak_number}}, $summit_name);
 				} else {
 					die "\n\nCould not extract a RefSeq accession from $index_name.\n\n";
 				}
@@ -86,7 +86,7 @@ sub _create_blank_index {
 				$index_base = $1;
 			}
 			my $peak_numbers = $index_base;
-			$indexed_peaks->{$gene}{$peak_numbers} = 0;
+			$indexed_peaks->{$gene}{$peak_numbers} = [];
 		}
 	}
 	return $indexed_peaks;

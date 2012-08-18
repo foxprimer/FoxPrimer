@@ -169,6 +169,7 @@ sub mrna_primer_design :Chained('/') :PathPart('mrna_primer_design') :Args(0) {
 						my $total_number_to_make = @$genes;
 						if ( $number_of_valid_accessions == $total_number_to_make ) {
 							my $return_accessions = $c->model('mRNA_Primer_Design')->create_primers($structure);
+							`rm temp.out`;
 							my $primer_results = $c->model('Created_Primers::Primer')->search(
 										{ 'mrna'	=>	$return_accessions },
 										{ order_by	=>	{ -asc	=>	'product_penalty'} }
@@ -259,22 +260,6 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 					motifs		=>	$c->model('Available_Motifs')->available_motifs,
 				);
 			}
-			# Check to make sure there is something in the 'Cell Line' field
-			unless ( $c->request->parameters->{cell_line} ) {
-				$c->stash(
-					template	=>	'chip_primer_design.tt',
-					error_msg	=>	'You must enter a cell line from which the coordinates were generated',
-					motifs		=>	$c->model('Available_Motifs')->available_motifs,
-				);
-			}
-			# Check to make sure there is an antibody or treatment entered
-			unless ( $c->request->parameters->{antibody} ) {
-				$c->stash(
-					template	=>	'chip_primer_design.tt',
-					error_msg	=>	'You must enter the antibody or treatment from which the coordinates were generated',
-					motifs		=>	$c->model('Available_Motifs')->available_motifs,
-				);
-			}
 			# Check to make sure the product size field is filled
 			unless ( $c->request->parameters->{product_size} ) {
 				$c->stash(
@@ -285,14 +270,6 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 			}
 			# Predeclare a hash reference called $structure, which will hold all of the variables passed to the Catalyst Model
 			my $structure = {};
-			# Copy the Cell Line field into the structure
-			$structure->{cell_line} = $c->request->parameters->{cell_line};
-			# remove any whitespace from the Cell Line field.
-			$structure->{cell_line} =~ s/\s//g;
-			# Copy the antibody field into the structure
-			$structure->{antibody} = $c->request->parameters->{antibody};
-			# remove any whitespace from the antibody field.
-			$structure->{antibody} =~ s/\s//g;
 			# Copy the Product Size field into the structure
 			$structure->{product_size} = $c->request->parameters->{product_size};
 			# remove any whitespace from the Product Size field.
@@ -479,7 +456,7 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 				# Store the locations in the $structure
 				foreach my $line ( @{$structure->{bed_file}} ) {
 					my ($chromosome, $start, $stop, $peak_name) = split(/\t/, $line);
-					$temp_locations_by_peak_name->{$peak_name} = join("\t", $chromosome, $start, $stop);
+					push( @{$temp_locations_by_peak_name->{$peak_name}}, join("\t", $chromosome, $start, $stop));
 				}
 				$structure->{locations_by_peak} = $temp_locations_by_peak_name;
 			}
@@ -542,11 +519,15 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 			}
 			# Enter the primers into the general table in the ChIP_Primers database
 			my $chip_primers_rs = $c->model('Created_ChIP_Primers::ChipPrimerPairsGeneral');
+			# Create an Array Ref of Hash Refs to hold the created primer information
+			my $created_primers_insert = [];
+			# Store the relevant information in the Hash Ref
 			foreach my $interval_name ( keys %{$structure->{created_chip_primers}} ) {
 				foreach my $location_string ( keys %{$structure->{created_chip_primers}{$interval_name}} ) {
 					my ($chromosome, $location_start, $location_stop) = split(/\t/, $location_string);
 					foreach my $primer_pair ( keys %{$structure->{created_chip_primers}{$interval_name}{$location_string}} ) {
-						$chip_primers_rs->update_or_create({
+						push(@$created_primers_insert, 
+							{
 								left_primer_sequence		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{left_primer_sequence},
 								right_primer_sequence		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{right_primer_sequence},
 								left_primer_tm				=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{left_primer_tm},
@@ -560,32 +541,97 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 								primer_pair_penalty			=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{product_penalty},
 							}
 						);
-						# Retrieve the database row where the primers were entered
-						my $primer_pair_row = $chip_primers_rs->find(
-							{
-								left_primer_sequence		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{left_primer_sequence},
-								right_primer_sequence		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{right_primer_sequence},
-							}
-						);
-						my $primer_pair_id = $primer_pair_row->id;
-						# Use FoxPrimer::PeaksToGenes (a special version of PeaksToGenes) to determine the positions of the primer pairs 
-						# relative to transcriptional start sites within 100Kb
-						my $peaks_to_genes = $c->model('PeaksToGenes')->new(
-							genome		=>	$c->request->parameters->{genome},
-							chromosome	=>	$chromosome,
-							start		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{left_primer_5prime},
-							stop		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{right_primer_5prime},
-						);
-						my $primer_pairs_locations = $peaks_to_genes->annotate_primer_pairs;
 					}
 				}
 			}
-			`rm $peaks_fh`;
-			$c->stash(
-				template	=>	'chip_primer_design.tt',
-				status_msg	=>	"The file $peaks_file was properly uploaded",
-				motifs		=>	$c->model('Available_Motifs')->available_motifs,
+			# Insert the created primers into the database
+			foreach my $created_primer_insert ( @$created_primers_insert ) {
+				$chip_primers_rs->update_or_create($created_primer_insert);
+				# Retrieve the primer pair id where the primers were entered
+				my $primer_pair_row = $chip_primers_rs->find(
+					{
+						left_primer_sequence		=>	$created_primer_insert->{left_primer_sequence},
+						right_primer_sequence		=>	$created_primer_insert->{right_primer_sequence},
+					}
+				);
+				$created_primer_insert->{primer_pair_id} = $primer_pair_row->id;
+			}
+			# Use FoxPrimer::PeaksToGenes (a special version of PeaksToGenes) to determine the positions of the primer pairs 
+			# relative to transcriptional start sites within 100Kb
+			my $peaks_to_genes = $c->model('PeaksToGenes')->new(
+				genome		=>	$c->request->parameters->{genome},
+				primer_info	=>	$created_primers_insert,
 			);
+			my $primer_pairs_locations = $peaks_to_genes->annotate_primer_pairs;
+			# Test to ensure that the primer pair was mapped to a relative position
+			foreach my $created_primer_insert ( @$created_primers_insert ) {
+				if ( @{$primer_pairs_locations->{$created_primer_insert->{primer_pair_id}}} ) {
+					# Extract the relative location id from the relative_location database
+					my $locations_result_set = $c->model('Created_ChIP_Primers::RelativeLocation');
+					foreach my $primer_pair_position ( @{$primer_pairs_locations->{$created_primer_insert->{primer_pair_id}}} ) {
+						my $location_row = $locations_result_set->find(
+							{
+								location	=>	$primer_pair_position,
+							}
+						);
+						push(@{$created_primer_insert->{relative_locations_id}}, $location_row->id);
+						# Parse the primer pair position string before adding it to the insert structure
+						my $parsed_position_string;
+						if ( $primer_pair_position =~ /^(.+?)-Human_(.+)$|^(.+?)-Human_(.+)$/ ) {
+							my $accession = $1;
+							my $location = $2;
+							$parsed_position_string = "$location of $accession";
+						}
+						push(@{$created_primer_insert->{relative_locations}}, $parsed_position_string);
+					}
+					# Test to ensure that a relative location id has been retrieved
+					if ( @{$created_primer_insert->{relative_locations_id}} ) {
+						my $chip_primer_pair_relative_location_result_set = $c->model('Created_ChIP_Primers::ChipPrimerPairsRelativeLocation');
+						foreach my $relative_location_id ( @{$created_primer_insert->{relative_locations_id}} ) {
+							$chip_primer_pair_relative_location_result_set->update_or_create(
+								{
+									pair_id	=>	$created_primer_insert->{primer_pair_id},
+									location_id	=>	$relative_location_id,
+								}
+							);
+						}
+					} else {
+						push(@{$created_primer_insert->{relative_locations}}, "There were no gene bodies within 100Kb of this primer pair");
+					}
+				} else {
+					push(@{$created_primer_insert->{relative_locations}}, "There were no gene bodies within 100Kb of this primer pair");
+				}
+			}
+			`rm $peaks_fh`;
+			# Check to see if there are any error messages to return to the user
+			if ( $structure->{peak_names_with_no_motif} || @$unable_to_make_primers ) {
+				my $error_message = "Primers for some of the intervals were not able to be designed for the following reasons:\n";
+				if ( $structure->{peak_names_with_no_motif} ) {
+					$error_message .= "No matches were found for the motif $structure->{motif_name} in any of these intervals: $structure->{peak_names_with_no_motif}.\n";
+				}
+				if ( @$unable_to_make_primers ) {
+					$error_message .= "Primers were not able to be made in the following locations:\n";
+					foreach my $design_try ( @$unable_to_make_primers ) {
+						foreach my $location ( keys %$design_try ) {
+							$error_message .= "In the peak: $location, coordinates: $design_try->{$location}\n";
+						}
+					}
+				}
+				$c->stash(
+					template	=>	'chip_primer_design.tt',
+					error_msg	=>	$error_message,
+					status_msg	=>	"Primers have been designed",
+					motifs		=>	$c->model('Available_Motifs')->available_motifs,
+					primers		=>	$created_primers_insert,
+				);
+			} else {
+				$c->stash(
+					template	=>	'chip_primer_design.tt',
+					status_msg	=>	"Primers have been designed for all intervals",
+					motifs		=>	$c->model('Available_Motifs')->available_motifs,
+					primers		=>	$created_primers_insert,
+				);
+			}
 		} else {
 			$c->stash(
 				template	=>	'chip_primer_design.tt',
@@ -653,9 +699,6 @@ sub validated_primers_entry :Chained('/') :PathPart('validated_primers_entry') :
 			error_msg	=>	"You have not entered file to upload",
 		);
 	}
-	$c->stash(
-		template	=>	'validated_primers.tt',
-	);
 }
 
 =head2 default

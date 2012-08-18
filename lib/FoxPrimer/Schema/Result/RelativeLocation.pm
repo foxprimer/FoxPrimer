@@ -101,9 +101,19 @@ __PACKAGE__->has_many(
   { cascade_copy => 0, cascade_delete => 0 },
 );
 
+=head2 pairs
 
-# Created by DBIx::Class::Schema::Loader v0.07025 @ 2012-08-17 13:02:17
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:khTMyHqjsX5lZZO5DbDhOg
+Type: many_to_many
+
+Composing rels: L</chip_primer_pairs_relative_locations> -> pair
+
+=cut
+
+__PACKAGE__->many_to_many("pairs", "chip_primer_pairs_relative_locations", "pair");
+
+
+# Created by DBIx::Class::Schema::Loader v0.07025 @ 2012-08-18 12:46:28
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ndhBhFCv70GfZf1FMC/fiA
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

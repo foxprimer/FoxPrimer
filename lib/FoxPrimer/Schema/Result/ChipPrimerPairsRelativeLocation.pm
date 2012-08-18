@@ -42,22 +42,36 @@ __PACKAGE__->table("chip_primer_pairs_relative_locations");
 
   data_type: 'integer'
   is_foreign_key: 1
-  is_nullable: 1
+  is_nullable: 0
 
 =head2 location_id
 
   data_type: 'integer'
   is_foreign_key: 1
-  is_nullable: 1
+  is_nullable: 0
 
 =cut
 
 __PACKAGE__->add_columns(
   "pair_id",
-  { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
+  { data_type => "integer", is_foreign_key => 1, is_nullable => 0 },
   "location_id",
-  { data_type => "integer", is_foreign_key => 1, is_nullable => 1 },
+  { data_type => "integer", is_foreign_key => 1, is_nullable => 0 },
 );
+
+=head1 PRIMARY KEY
+
+=over 4
+
+=item * L</pair_id>
+
+=item * L</location_id>
+
+=back
+
+=cut
+
+__PACKAGE__->set_primary_key("pair_id", "location_id");
 
 =head1 RELATIONS
 
@@ -73,12 +87,7 @@ __PACKAGE__->belongs_to(
   "location",
   "FoxPrimer::Schema::Result::RelativeLocation",
   { id => "location_id" },
-  {
-    is_deferrable => 1,
-    join_type     => "LEFT",
-    on_delete     => "CASCADE",
-    on_update     => "CASCADE",
-  },
+  { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
 );
 
 =head2 pair
@@ -93,17 +102,12 @@ __PACKAGE__->belongs_to(
   "pair",
   "FoxPrimer::Schema::Result::ChipPrimerPairsGeneral",
   { id => "pair_id" },
-  {
-    is_deferrable => 1,
-    join_type     => "LEFT",
-    on_delete     => "CASCADE",
-    on_update     => "CASCADE",
-  },
+  { is_deferrable => 1, on_delete => "CASCADE", on_update => "CASCADE" },
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07025 @ 2012-08-17 13:02:17
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:rgWsz/sngUbdxFjokN86Xw
+# Created by DBIx::Class::Schema::Loader v0.07025 @ 2012-08-18 12:46:28
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:noqlyV1238v0q/7Z6bXbKg
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

@@ -3,6 +3,7 @@ use Moose;
 use namespace::autoclean;
 use FoxPrimer::Model::PeaksToGenes::FileStructure;
 use FoxPrimer::Model::PeaksToGenes::BedTools;
+use Data::Dumper;
 
 extends 'Catalyst::Model';
 
@@ -54,19 +55,9 @@ has intersect_bed_executable	=>	(
 	lazy		=>	1,
 );
 
-has chromosome	=>	(
-	is		=>	'rw',
-	isa		=>	'Str',
-);
-
-has start	=>	(
-	is		=>	'rw',
-	isa		=>	'Int',
-);
-
-has stop	=>	(
-	is		=>	'rw',
-	isa		=>	'Int',
+has primer_info	=>	(
+	is			=>	'rw',
+	isa			=>	'ArrayRef[HashRef]',
 );
 
 =head2 annotate_primer_pairs
@@ -83,19 +74,28 @@ sub annotate_primer_pairs {
 	my $self = shift;
 	# Retreive the index files based on the genome
 	my $index_files = FoxPrimer::Model::PeaksToGenes::FileStructure->get_index($self->genome);
+	# Create a temporary BED file of the coordinates
+	my $temp_bed = [];
+	foreach my $primer_pair (@{$self->primer_info}) {
+		push(@$temp_bed, join("\t", $primer_pair->{chromosome}, $primer_pair->{left_primer_five_prime},
+									$primer_pair->{right_primer_five_prime}, $primer_pair->{primer_pair_id})
+		);
+	}
 	# Write a temporary BED file of the primer pair coordinates
 	my $primer_pair_bed_fh = "tmp/bed/primer_pair.bed";
 	open my $primer_pair_bed, ">", $primer_pair_bed_fh or die "\n\nCould not write to $primer_pair_bed_fh $!\n\n";
-	print $primer_pair_bed join("\t", $self->chromosome, $self->start, $self->stop);
+	print $primer_pair_bed join("\n", @$temp_bed);
 	close $primer_pair_bed;
 	my $indexed_peaks = FoxPrimer::Model::PeaksToGenes::BedTools->annotate_peaks($primer_pair_bed_fh, $index_files, $self->intersect_bed_executable);
-	# Create an Array Reference to hold strings for transcripts and locations
-	my $primer_pairs_locations = [];
+	# Create a Hash Reference to hold strings for transcripts and locations for each primer pair
+	my $primer_pairs_locations = {};
 	# Iterate through the indexed peaks and concatenate the transcripts with the locations where a match was found for the primer pair
 	foreach my $accession ( keys %$indexed_peaks ) {
 		foreach my $location ( keys %{$indexed_peaks->{$accession}} ) {
-			if ( $indexed_peaks->{$accession}{$location} >= 1 ) {
-				push (@$primer_pairs_locations, join("-", $accession, $location));
+			if ( @{$indexed_peaks->{$accession}{$location}} ) {
+				foreach my $primer_pair_id (@{$indexed_peaks->{$accession}{$location}}) {
+					push (@{$primer_pairs_locations->{$primer_pair_id}}, join("-", $accession, $location));
+				}
 			}
 		}
 	}

@@ -19,5 +19,6 @@ CREATE TABLE relative_locations (
 );
 CREATE TABLE chip_primer_pairs_relative_locations (
 	pair_id INTEGER REFERENCES chip_primer_pairs_general(id),
-	location_id INTEGER REFERENCES relative_locations(id)
+	location_id INTEGER REFERENCES relative_locations(id),
+	PRIMARY KEY(pair_id, location_id)
 );
