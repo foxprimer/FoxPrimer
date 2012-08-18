@@ -576,7 +576,7 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 							start		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{left_primer_5prime},
 							stop		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{right_primer_5prime},
 						);
-						print Dumper $peaks_to_genes;
+						my $primer_pairs_locations = $peaks_to_genes->annotate_primer_pairs;
 					}
 				}
 			}

@@ -81,6 +81,27 @@ start sites of all transcripts.
 
 sub annotate_primer_pairs {
 	my $self = shift;
+	# Retreive the index files based on the genome
+	my $index_files = FoxPrimer::Model::PeaksToGenes::FileStructure->get_index($self->genome);
+	# Write a temporary BED file of the primer pair coordinates
+	my $primer_pair_bed_fh = "tmp/bed/primer_pair.bed";
+	open my $primer_pair_bed, ">", $primer_pair_bed_fh or die "\n\nCould not write to $primer_pair_bed_fh $!\n\n";
+	print $primer_pair_bed join("\t", $self->chromosome, $self->start, $self->stop);
+	close $primer_pair_bed;
+	my $indexed_peaks = FoxPrimer::Model::PeaksToGenes::BedTools->annotate_peaks($primer_pair_bed_fh, $index_files, $self->intersect_bed_executable);
+	# Create an Array Reference to hold strings for transcripts and locations
+	my $primer_pairs_locations = [];
+	# Iterate through the indexed peaks and concatenate the transcripts with the locations where a match was found for the primer pair
+	foreach my $accession ( keys %$indexed_peaks ) {
+		foreach my $location ( keys %{$indexed_peaks->{$accession}} ) {
+			if ( $indexed_peaks->{$accession}{$location} >= 1 ) {
+				push (@$primer_pairs_locations, join("-", $accession, $location));
+			}
+		}
+	}
+	# Clean up the temporary files
+	`rm tmp/bed/primer_pair.bed`;
+	return $primer_pairs_locations;
 }
 
 __PACKAGE__->meta->make_immutable;
