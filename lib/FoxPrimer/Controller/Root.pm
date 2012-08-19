@@ -682,7 +682,112 @@ sub validated_primers_entry :Chained('/') :PathPart('validated_primers_entry') :
 					error_msg	=>	"Failed to copy '$primers_file' to  '$target': $!",
 				);
 			}
+			# Create a Hash Ref structure to hold information to be passed to the Catalyst Model
+			my $structure = {};
+			# Check to make sure the correct information has been entered in the uploaded file
+			open my $validated_primers_file, "<", $target or $c->stash(
+				template	=>	'validated_primers.tt',
+				error_msg	=>	"The file $target was unable to be opened. Please check the permissions on this file",
+			);
+			# Create an integer variable that tells the user the line number if there is an error in the file
+			my $line_number = 1;
+			# Create an Array Ref to hold errors found in the uploaded file
+			my $file_errors = [];
+			while (<$validated_primers_file>) {
+				my $line = $_;
+				chomp ($line);
+				# Create a boolean variable that will be used to determine whether the information from this primer
+				# line will be passed to the Catalyst Model
+				my $valid_primer_line = 1;
+				my ($primer_type, $left_primer_sequence, $right_primer_sequence, $accession, $user_name,
+					$efficiency, $left_primer_chip_location, $right_primer_chip_location, $genome ) = split(/\t/, $line);
+				# Make the $primer_type string lowercase
+				$primer_type = lc($primer_type);
+				# Make sure that the primer type is either 'chip' or 'mrna'
+				unless ( $primer_type eq 'chip' || $primer_type eq 'mrna' ) {
+					push (@$file_errors, "On line $line_number, the primer type is $primer_type, which is not 'chip' or 'mrna'");
+					$valid_primer_line = 0;
+				}
+				# Make sure that the primer strings entered contain only 'A', 'T', 'G', or 'C'
+				$left_primer_sequence = uc($left_primer_sequence);
+				$right_primer_sequence = uc($right_primer_sequence);
+				unless ( $left_primer_sequence =~ /^[ATGC]$/ ) {
+					push (@$file_errors, "On line $line_number, the left primer sequence: $left_primer_sequence, contains one or more invalid characters");
+					$valid_primer_line = 0;
+				}
+				unless ( $right_primer_sequence =~ /^[ATGC]$/ ) {
+					push (@$file_errors, "On line $line_number, the right primer sequence: $right_primer_sequence, contains one or more invalid characters");
+					$valid_primer_line = 0;
+				}
+				# Check to make sure that the user has entered their name
+				unless ( $user_name ) {
+					push (@$file_errors, "On line $line_number, the user name is not defined");
+					$valid_primer_line = 0;
+				}
+				# Check to make sure a numerical value has been entered for the efficiency
+				unless ( $efficiency =~ /^\d+\.\d+$|^\d+$/ ) {
+					push (@$file_errors, "On line $line_number, the efficiency entered: $efficiency is not a valid number");
+					$valid_primer_line = 0;
+				}
+				# If the primers are defined as mRNA primers, check to make sure the accession is valid
+				if ( $primer_type eq 'mrna' ) {
+					# This subroutine checks the database of accessions, gis and genomic
+					# coordinates for the user-entered accessions, returns an arrayref of
+					# accessions not found in the database
+					my $valid_accessions = {};
+					my $rs = $c->model('Valid_mRNA::Gene2accession')->search({
+							-or	=>	[
+								'mrna'		=>	[$accession],
+								'mrna_root'	=>	[$accession],
+							],
+						}
+					);
+					while ( my $result = $rs->next ) {
+						push ( @{$valid_accessions->{$accession}}, 
+							{
+								accession	=>	$result->mrna,
+								mrna_gi		=>	$result->mrna_gi,
+								dna_gi		=>	$result->dna_gi,
+								dna_start	=>	$result->dna_start,
+								dna_stop	=>	$result->dna_stop,
+								orienation	=>	$result->orientation,
+							}
+						);
+					}
+					# Test to ensure that that mRNA was found in the dispatch table
+					unless ( $valid_accessions->{$accession} ) {
+						push (@$file_errors, "On line $line_number, the accession: $accession is not found in our gene2accession database");
+						$valid_primer_line = 0;
+					}
+					# If the boolean $valid_primer_line is still true, pass the requisite information to the Array Ref of Hash Refs
+					if ( $valid_primer_line == 1 ) {
+						push( @{$structure->{mrna_primers_to_design}},
+							{
+								left_primer_sequence	=>	$left_primer_sequence,
+								right_primer_sequence	=>	$right_primer_sequence,
+								user_name				=>	$user_name,
+								efficiency				=>	$efficiency,
+								accession_and_position	=>	$valid_accessions,
+							}
+						);
+					} 
+				# If the primers are defined as ChIP primers, check to make sure the reqiured information has been entered
+				} elsif ( $primer_type eq 'chip' ) {
+					# Check to make sure the user has entered a 
+				}
+				# Increase the line number iterator
+				$line_number++;
+			}
+			# Remove the uploaded file as it is no longer necesary
 			`rm $target`;
+			# If no primers will be designed return the error string to the user
+			unless ( $structure->{mrna_primers_to_design} || $structure->{chip_primers_to_design} ) {
+				my $error_string = "Unable to enter validated primers for the following reasons:\n" . join("\n", @$file_errors);
+				$c->stash(
+					template	=>	'validated_primers.tt',
+					error_msg	=>	$error_string,
+				);
+			}
 			$c->stash(
 				template	=>	'validated_primers.tt',
 				status_msg	=>	"The file $primers_file was properly uploaded",

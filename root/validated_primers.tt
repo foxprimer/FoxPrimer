@@ -17,11 +17,10 @@
 			<th>Right Primer Sequence</th>
 			<th>Accession</th>
 			<th>Your name</th>
+			<th>Efficiency</th>
 			<th>Left Primer ChIP Location</th>
 			<th>Right Primer ChIP Location</th>
-			<th>Efficiency</th>
-			<th>Validation Notes</th>
-			<th>Citation</th>
+			<th>Genome</th>
 		</tr>
 		<tr>
 			<td>Required</td>
@@ -29,11 +28,10 @@
 			<td>Required</td>
 			<td>Required</td>
 			<td>Required</td>
-			<td>Required for ChIP primers</td>
-			<td>Required for ChIP primers</td>
 			<td>Required</td>
-			<td></td>
-			<td></td>
+			<td>Required for ChIP primers</td>
+			<td>Required for ChIP primers</td>
+			<td>Required for ChIP primers</td>
 		</tr>
 	</table>
 	<p>
@@ -48,16 +46,14 @@
 		<p style="margin-left: 1.5em">Enter a valid NCBI mRNA accession.<br/>For ChIP primers, this will be used to annotate the primer pair location relative to transcriptional start site.<br/>For mRNA primers, this will be used to determine where the primers fall relative to intron-exon junctions.</p>
 		<b>Your Name:</b>
 		<p style="margin-left: 1.5em">Enter your name.</p>
+		<b>Efficiency</b>
+		<p style="margin-left: 1.5em">Enter the experimentally determined qPCR efficiency.</p>
 		<b>Left Primer ChIP Location</b>
 		<p style="margin-left: 1.5em">If the primer pair is for ChIP qPCR, enter the location of the primer relative to the transcriptional start site. For example, if the primer is 250bp upstream of the transcriptional start site, enter "-250" in this field.</p>
 		<b>Right Primer ChIP Location</b>
 		<p style="margin-left: 1.5em">If the primer pair is for ChIP qPCR, enter the location of the primer relative to the transcriptional start site. For example, if the primer is 250bp upstream of the transcriptional start site, enter "-250" in this field.</p>
-		<b>Efficiency</b>
-		<p style="margin-left: 1.5em">Enter the experimentally determined qPCR efficiency.</p>
-		<b>Validation Notes</b>
-		<p style="margin-left: 1.5em">Enter any relevant information related to primer pair validation.</p>
-		<b>Citation:</b>
-		<p style="margin-left: 1.5em">Enter any publications that this primer pair was used in.</p>
+		<b>Genome</b>
+		<p style="margin-left: 1.5em">If the primer pair is for ChIP qPCR, enter the genome to which the locations are determined. Valid genomes as of now are: hg19 or mm9</p>
 	</p>
 </form>
 </div>
