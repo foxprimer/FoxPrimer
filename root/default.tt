@@ -166,7 +166,11 @@
 		<H1 class="title">[% template.title or site.title %]</H1>
 		<p id="messages">Status Messages:</p>
 		<p id="messages" class="status">[% status_msg %]</p>
-		<p id="messages" class="error">[% error_msg %]</p>
+		[% IF error_msg %]
+			[% FOR error IN error_msg %]
+				<p id="messages" class="error">[% error %]</p>
+			[% END %]
+		[% END %]
 		<p>[% content %]</p>
 	</body>
 		

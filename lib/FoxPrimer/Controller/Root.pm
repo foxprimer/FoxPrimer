@@ -256,264 +256,136 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 			unless ( $upload->link_to($peaks_fh) || $upload->copy_to($peaks_fh) ) {
 				$c->stash(
 					template	=>	'chip_primer_design.tt',
-					error_msg	=>	"Failed to copy '$peaks_file' to  '$peaks_fh': $!",
+					error_msg	=>	["Failed to copy '$peaks_file' to  '$peaks_fh': $!"],
 					motifs		=>	$c->model('Available_Motifs')->available_motifs,
 				);
 			}
-			# Check to make sure the product size field is filled
-			unless ( $c->request->parameters->{product_size} ) {
-				$c->stash(
-					template	=>	'chip_primer_design.tt',
-					error_msg	=>	'You must fill the product size field',
-					motifs		=>	$c->model('Available_Motifs')->available_motifs,
-				);
-			}
-			# Predeclare a hash reference called $structure, which will hold all of the variables passed to the Catalyst Model
+			# Pre-declare a hash reference called $structure, which will hold all of the variables passed to the Catalyst Model
 			my $structure = {};
-			# Copy the Product Size field into the structure
-			$structure->{product_size} = $c->request->parameters->{product_size};
-			# remove any whitespace from the Product Size field.
-			$structure->{product_size} =~ s/\s//g;
-			# Test to ensure that the numbers entered in the Product Size field are valid.
-			if ( $structure->{product_size} =~ /-/ ) {
-				my ($lower_limit, $upper_limit) = split(/-/, $structure->{product_size});
-				unless ( ($lower_limit =~ /^\d+$/) && ($upper_limit =~ /^\d+$/) ) {
-					$c->stash(
-						template	=>	'chip_primer_design.tt',
-						error_msg	=>	'The upper and lower limits for the product size must be integers',
-						motifs		=>	$c->model('Available_Motifs')->available_motifs,
-					);
-				}
-				unless ( $upper_limit > $lower_limit ) {
-					$c->stash(
-						template	=>	'chip_primer_design.tt',
-						error_msg	=>	'The upper limit for the product size must be greater than the lower limit',
-						motifs		=>	$c->model('Available_Motifs')->available_motifs,
-					);
-				}
-			} else {
+			# Pre-declare an Array Ref to hold error messages to return to the user
+			my $error_messages = [];
+			# Use the Catalyst Model ChIP_Primer_Design to determine if the product size field is valid
+			my $product_size_errors = $c->model('ChIP_Primer_Design')->validate_product_size($c->request->parameters);
+			if (@$product_size_errors) {
 				$c->stash(
 					template	=>	'chip_primer_design.tt',
-					error_msg	=>	'The product size field must contain a hyphen "-" seperating the upper and lower product size limits',
+					error_msg	=>	$product_size_errors,
 					motifs		=>	$c->model('Available_Motifs')->available_motifs,
 				);
+			} else {
+				$structure->{product_size} = $c->request->parameters->{product_size};
 			}
 			# Check to make sure the file uploaded is a valid BED file, and determine whether the coordinates are peaks or summits.
 			# Pre-declare a string to hold the type of peaks found.
 			my $peaks_type;
-			# Open the file, returning an error to the user if the file is not openable
-			open my $bed_file, "<", $peaks_fh or $c->stash(
-				template	=>	'chip_primer_design.tt',
-				error_msg	=>	"The uploaded file: $peaks_fh was not able to be read. Please check permissions on the file.",
-				motifs		=>	$c->model('Available_Motifs')->available_motifs,
+			
+			my $bed_file_check = $c->model('ChIP_Primer_Design')->new(
+				genome			=>	$c->request->parameters->{genome},
+				product_size	=>	$structure->{product_size},
 			);
-			# Initialize a line number, so if there are errors in the file, the user can be referred to the position of the error.
-			my $bed_line_number = 1;
-			# Pre-declare a hash reference to ensure that the peak names are unique
-			my $peaks_names = {};
-			while (<$bed_file>) {
-				my $line = $_;
-				chomp($line);
-				my ($chr, $start, $stop, $name) = split(/\t/, $line);
-				# Test to ensure that there is a name in the fourth field of the uploaded file.
-				unless ( $name ) {
-					$c->stash(
-						template	=>	'chip_primer_design.tt',
-						error_msg	=>	"The fourth column on line $bed_line_number of your BED file: $peaks_file must have a peak name.",
-						motifs		=>	$c->model('Available_Motifs')->available_motifs,
-					);
-				}
-				# Test to ensure that the fourth field is unique
-				if ( $peaks_names->{$name} ) {
-					$c->stash(
-						template	=>	'chip_primer_design.tt',
-						error_msg	=>	"The fourth column on line $bed_line_number of your BED file: $peaks_file must have a unique peak name.",
-						motifs		=>	$c->model('Available_Motifs')->available_motifs,
-					);
-				} else {
-					$peaks_names->{$name} = 1;
-				}
-				# Test to ensure that the Chromosome field begins with 'chr'
-				unless ( $chr =~ /^chr/ ) {
-					$c->stash(
-						template	=>	'chip_primer_design.tt',
-						error_msg	=>	"On line $bed_line_number of your BED file: $peaks_file, the chromosome field: $chr is not valid.",
-						motifs		=>	$c->model('Available_Motifs')->available_motifs,
-					);
-				}
-				# Test to ensure that the Start field is an integer
-				unless ( $start =~ /^\d+$/ ) {
-					$c->stash(
-						template	=>	'chip_primer_design.tt',
-						error_msg	=>	"On line $bed_line_number of your BED file: $peaks_file, the start field: $start is not an integer.",
-						motifs		=>	$c->model('Available_Motifs')->available_motifs,
-					);
-				}
-				# Test to ensure that the Stop field is an integer
-				unless ( $stop =~ /^\d+$/ ) {
-					$c->stash(
-						template	=>	'chip_primer_design.tt',
-						error_msg	=>	"On line $bed_line_number of your BED file: $peaks_file, the stop field: $stop is not an integer.",
-						motifs		=>	$c->model('Available_Motifs')->available_motifs,
-					);
-				}
-				# Test to ensure that the Stop field is larger than the Start field
-				unless ( $stop > $start ) {
-					$c->stash(
-						template	=>	'chip_primer_design.tt',
-						error_msg	=>	"On line $bed_line_number of your BED file: $peaks_file, the stop field: $stop is not large than the start field: $start.",
-						motifs		=>	$c->model('Available_Motifs')->available_motifs,
-					);
-				}
-				# Determine which type of intervals have been uploaded
-				if ( ! $peaks_type ) {
-					if ( ($start + 1) == $stop ) {
-						$peaks_type = 'summits';
-					} elsif ( $stop > ($start + 1) ) {
-						$peaks_type = 'peak_regions';
-					}
-				} elsif ( $peaks_type eq 'summits' ) {
-					unless ( ($start + 1) == $stop ) {
-						$c->stash(
-							template	=>	'chip_primer_design.tt',
-							error_msg	=>	"On line $bed_line_number of your BED file: $peaks_file, the coordinates are not summits, which were defined by the first line in your file.",
-							motifs		=>	$c->model('Available_Motifs')->available_motifs,
-						);
-					}
-				} elsif ( $peaks_type eq 'peak_regions' ) {
-					unless ( $stop > ($start + 1) ) {
-						$c->stash(
-							template	=>	'chip_primer_design.tt',
-							error_msg	=>	"On line $bed_line_number of your BED file: $peaks_file, the coordinates are not peak regions, which were defined by the first line in your file.",
-							motifs		=>	$c->model('Available_Motifs')->available_motifs,
-						);
-					}
-				}
-				# Push the interval line into the Structure to be passed to the Catalyst Model
-				push (@{$structure->{bed_file}}, $line);
-				# Increase the line number at the end of the loop
-				$bed_line_number++;
+			my ($bed_file_errors, $bed_file_coordinates) = $bed_file_check->valid_bed_file($peaks_fh);
+			# If none of the bed file lines were valid return the errors to the user
+			unless ( @$bed_file_coordinates ) {
+				$c->stash(
+					template	=>	'chip_primer_design.tt',
+					error_msg	=>	$bed_file_errors,
+					motifs		=>	$c->model('Available_Motifs')->available_motifs,
+				);
 			}
+			# Otherwise, if any lines in the bed file contained errors, add them to the
+			# array of error messages to be returned to the user later
+			push(@$error_messages, @$bed_file_errors) if @$bed_file_errors;
 			# Store the peaks file location in the Structure to be passed to the Catalyst Model
 			$structure->{peaks_file} = $peaks_fh;
 			# If the peaks are intervals, check to see if the user has chosen a motif from the list
-			if ( $peaks_type eq 'peak_regions' ) {
-				if ( $c->request->parameters->{known_motif} ) {
-					# Retreive the motif file path from the Catalyst Model Available_Motifs and store it in the Structure
-					$structure->{motif_file} = $c->model('Available_Motifs')->motif_index->{$c->request->parameters->{known_motif}};
-					$structure->{motif_name} = $c->request->parameters->{known_motif};
-					$structure->{design_type} = 'motif';
-				} else {
-					$structure->{design_type} = 'region';
-				}
-			} else {
-				$structure->{design_type} = 'summit';
+			if ( $c->request->parameters->{known_motif} ) {
+				# Retreive the motif file path from the Catalyst Model Available_Motifs and store it in the Structure
+				$structure->{motif_file} = $c->model('Available_Motifs')->motif_index->{$c->request->parameters->{known_motif}};
+				$structure->{motif_name} = $c->request->parameters->{known_motif};
 			}
+			# Pre-declare a Hash Ref to hold the Hash Refs of coordinates to design primers
+			my $coordinates_for_primer_design = [];
 			# If the primers will be designed around motifs, determine the positions of the motifs within each interval using FIMO
-			if ( $structure->{design_type} eq 'motif' ) {
+			# Predeclare an Array Reference to hold the locations where a motif is not found.
+			my $no_motif_locations = [];
+			if ( $structure->{motif_name} ) {
 				# Iterate through the BED file, calling FIMO with the user-designated motif. If no motif is discovered in the interval
 				# return these coordinates to the user in the error message
-				# Predeclare an Array Reference to hold the locations where a motif is not found.
-				my $no_motif_locations = [];
-				# Predeclare a Hash Reference to hold the intervals and the motif locations within each interval
-				my $motif_location_hash = {};
-				# Make a call to the Catalyst Model for FIMO
-				foreach my $line ( @{$structure->{bed_file}} ) {
-					my ($chromosome, $start, $stop, $peak_name) = split(/\t/, $line);
+				# Make a call to the Catalyst Model for FIMO for each interval
+				foreach my $coordinate_set (@$bed_file_coordinates) {
 					my $fimo = $c->model('FIMO')->new(
-						chromosome	=>	$chromosome,
-						start		=>	$start,
-						stop		=>	$stop,
-						motif_name	=>	$structure->{motif_name},
-						genome		=>	$c->request->parameters->{genome},
+						peak_name		=>	$coordinate_set->{peak_name},
+						chromosome		=>	$coordinate_set->{chromosome},
+						start			=>	$coordinate_set->{genomic_dna_start},
+						stop			=>	$coordinate_set->{genomic_dna_stop},
+						motif_name		=>	$structure->{motif_name},
+						genome			=>	$c->request->parameters->{genome},
+						product_size	=>	$structure->{product_size},
 					);
-					my ($motifs_found, $motif_positions) = $fimo->run;
-					if ( $motifs_found == 1 ) {
-						foreach my $motif_location_found (@$motif_positions) {
-							push (@{$motif_location_hash->{$peak_name}}, $motif_location_found);
-						}
-					} elsif ( $motifs_found == 0 ) {
-						push (@$no_motif_locations, $peak_name);
+					my $motif_regions_found = $fimo->run;
+					if (@$motif_regions_found) {
+						push(@$coordinates_for_primer_design, @$motif_regions_found);
+					} else {
+						push(@$no_motif_locations, $coordinate_set);
 					}
 				}
-				# Store the motifs location hash in the $structure
-				$structure->{locations_by_peak} = $motif_location_hash;
-				# Store the peaks that do not contain the user-defined motif in the $structure as
-				# a ", "-delimited string
-				$structure->{peak_names_with_no_motif}  = join(", ", @$no_motif_locations);
+				# For each interval where a motif is not found, add to the error string
+				if (@$no_motif_locations) {
+					foreach my $not_designed (@$no_motif_locations) {
+						push(@$error_messages, "The motif $structure->{motif_name} was not found in the peak $not_designed->{peak_name} which is on $not_designed->{chromosome} between positions $not_designed->{genomic_dna_start} and $not_designed->{genomic_dna_stop}.");
+					}
+				}
 				# If there are no motifs discovered in the intervals specified return the 
 				# peak_names_with_no_motif string in the error_msg
-				unless ( %$motif_location_hash ) {
+				unless (@$coordinates_for_primer_design) {
 					$c->stash(
 						template	=>	'chip_primer_design.tt',
-						error_msg	=>	"Unfortunately, no matches were found for the $structure->{motif_name} motif in any of these intervals $structure->{peak_names_with_no_motif}.\nPlease choose a different motif, or none to design ChIP primers in the interval.",
+						error_msg	=>	$error_messages,
 						motifs		=>	$c->model('Available_Motifs')->available_motifs,
 					);
 				}
 			} else {
-				# Pre-declare a temporary Hash Reference to hold locations by peak name
-				my $temp_locations_by_peak_name = {};
-				# Store the locations in the $structure
-				foreach my $line ( @{$structure->{bed_file}} ) {
-					my ($chromosome, $start, $stop, $peak_name) = split(/\t/, $line);
-					push( @{$temp_locations_by_peak_name->{$peak_name}}, join("\t", $chromosome, $start, $stop));
-				}
-				$structure->{locations_by_peak} = $temp_locations_by_peak_name;
+				# Copy the $bed_file_coordinates into coordinates_for_primer_design
+				$coordinates_for_primer_design = $bed_file_coordinates;
 			}
 			# Create an Array Ref to hold the locations where primers were unable to be designed
 			my $unable_to_make_primers = [];
+			# Create an Array Ref to hold designed primers
+			my $designed_primers = [];
 			# Design primers by passing the relevant information to the Catalyst Model ChIP_Primer_Design
 			# Primers will only be designed for matched motif regions, if a motif was specified.
-			foreach my $design_location ( keys %{$structure->{locations_by_peak}} ) {
-				foreach my $location_string (@{$structure->{locations_by_peak}->{$design_location}}) {
-					my ($chromosome, $start, $stop) = split(/\t/, $location_string);
-					my $chip_primer_design = $c->model('ChIP_Primer_Design')->new(
-						primer_type			=>	$structure->{design_type},
-						chromosome			=>	$chromosome,
-						start				=>	$start,
-						stop				=>	$stop,
-						peak_name			=>	$design_location,
-						product_size		=>	$structure->{product_size},
-						genome		=>	$c->request->parameters->{genome},
-					);
-					my ($primers_designed_boolean, $created_chip_primers) = $chip_primer_design->design_primers;
-					if ( $primers_designed_boolean == 1 ) {
-						push (@$unable_to_make_primers, {$design_location	=>	$chromosome . ':' . $start . '-' . $stop});
-					} else {
-						# Add the created ChIP primers to the structure
-						$structure->{created_chip_primers}{$design_location}{$location_string} = $created_chip_primers;
-					}
+			foreach my $location_to_design (@$coordinates_for_primer_design) {
+				my $chip_primer_design = $c->model('ChIP_Primer_Design')->new(
+					chromosome			=>	$location_to_design->{chromosome},
+					start				=>	$location_to_design->{genomic_dna_start},
+					stop				=>	$location_to_design->{genomic_dna_stop},
+					peak_name			=>	$location_to_design->{peak_name},
+					product_size		=>	$structure->{product_size},
+					genome				=>	$c->request->parameters->{genome},
+				);
+				my $created_chip_primers = $chip_primer_design->design_primers;
+				# If primer have been designed, add them to the designed_primers
+				# Array Ref
+				if ( %$created_chip_primers ) {
+					push (@$designed_primers, $created_chip_primers);
+				# If primers were not made, pass the location coordinates information
+				# to the unable_to_make_primers Array Ref
+				} else {
+					push (@$unable_to_make_primers, $location_to_design);
 				}
 			}
-			# Create a string to return to the user if there were regions where primers were not able to be created
-			my $unable_to_make_primers_string;
+			# For each interval where primers were unable to be made, add an error message
+			# to the error messages to be returned to the user
 			if ( @$unable_to_make_primers ) {
-				foreach my $design_try ( @$unable_to_make_primers ) {
-					foreach my $location ( keys %$design_try ) {
-						$unable_to_make_primers_string .= "In the peak: $location, coordinates: $design_try->{$location}\n";
+					foreach my $not_designed (@$unable_to_make_primers) {
+						push(@$error_messages, "The motif $structure->{motif_name} was not found in the peak $not_designed->{peak_name} which is on $not_designed->{chromosome} between positions $not_designed->{genomic_dna_start} and $not_designed->{genomic_dna_stop}.");
 					}
-				}
 			}
 			# If no primers are designed return an error message to the user
-			unless ( %{$structure->{created_chip_primers}} ) {
-				# Create a string to hold the error messages
-				my $no_primers_designed_message = "Unfortunately, no primers were designed for the following reasons:\n";
-				# If there were locations where a motif was not found, add these to the error string
-				if ( $structure->{peak_names_with_no_motif} ) {
-					$no_primers_designed_message .= "No matches were found for the motif $structure->{motif_name} in any of these intervals: $structure->{peak_names_with_no_motif}.\n";
-				}
-				# If primers were not able to be designed flanking a particular motif location, add these to the error string
-				if ( @$unable_to_make_primers ) {
-					$no_primers_designed_message .= "Primers were not able to be made in the following locations:\n";
-					foreach my $design_try ( @$unable_to_make_primers ) {
-						foreach my $location ( keys %$design_try ) {
-							$no_primers_designed_message .= "In the peak: $location, coordinates: $design_try->{$location}\n";
-						}
-					}
-				}
+			unless (@$designed_primers) {
 				$c->stash(
 					template	=>	'chip_primer_design.tt',
-					error_msg	=>	$no_primers_designed_message,
+					error_msg	=>	$error_messages,
 					motifs		=>	$c->model('Available_Motifs')->available_motifs,
 				);
 			}
@@ -521,27 +393,24 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 			my $chip_primers_rs = $c->model('Created_ChIP_Primers::ChipPrimerPairsGeneral');
 			# Create an Array Ref of Hash Refs to hold the created primer information
 			my $created_primers_insert = [];
-			# Store the relevant information in the Hash Ref
-			foreach my $interval_name ( keys %{$structure->{created_chip_primers}} ) {
-				foreach my $location_string ( keys %{$structure->{created_chip_primers}{$interval_name}} ) {
-					my ($chromosome, $location_start, $location_stop) = split(/\t/, $location_string);
-					foreach my $primer_pair ( keys %{$structure->{created_chip_primers}{$interval_name}{$location_string}} ) {
-						push(@$created_primers_insert, 
-							{
-								left_primer_sequence		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{left_primer_sequence},
-								right_primer_sequence		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{right_primer_sequence},
-								left_primer_tm				=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{left_primer_tm},
-								right_primer_tm				=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{right_primer_tm},
-								chromosome					=>	$chromosome,
-								left_primer_five_prime		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{left_primer_5prime},
-								left_primer_three_prime		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{left_primer_3prime},
-								right_primer_five_prime		=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{right_primer_5prime},
-								right_primer_three_prime	=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{right_primer_3prime},
-								product_size				=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{product_size},
-								primer_pair_penalty			=>	$structure->{created_chip_primers}{$interval_name}{$location_string}{$primer_pair}{product_penalty},
-							}
-						);
-					}
+			# Store the relevant information in the Array Ref of Hash Refs
+			foreach my $designed_primer (@$designed_primers) {
+				foreach my $primer_pair ( keys %$designed_primer ) {
+					push(@$created_primers_insert,
+						{
+							left_primer_sequence		=>	$designed_primer->{$primer_pair}->{left_primer_sequence},		
+							right_primer_sequence		=>	$designed_primer->{$primer_pair}->{right_primer_sequence},
+							left_primer_tm				=>	$designed_primer->{$primer_pair}->{left_primer_tm},
+							right_primer_tm				=>	$designed_primer->{$primer_pair}->{right_primer_tm},
+							chromosome					=>	$designed_primer->{$primer_pair}->{chromosome},
+							left_primer_five_prime		=>	$designed_primer->{$primer_pair}->{left_primer_5prime},
+							left_primer_three_prime		=>	$designed_primer->{$primer_pair}->{left_primer_3prime},
+							right_primer_five_prime		=>	$designed_primer->{$primer_pair}->{right_primer_5prime},
+							right_primer_three_prime	=>	$designed_primer->{$primer_pair}->{right_primer_3prime},
+							product_size				=>	$designed_primer->{$primer_pair}->{product_size},
+							primer_pair_penalty			=>	$designed_primer->{$primer_pair}->{product_penalty},
+						}
+					);
 				}
 			}
 			# Insert the created primers into the database
@@ -581,6 +450,20 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 							my $accession = $1;
 							my $location = $2;
 							$parsed_position_string = "$location of $accession";
+							# Use the ChIP_Primer_Design define_relative_position subroutine to
+							# determine the position of the 5'-end of each primer relative to the
+							# transcriptional start site
+							my $define_relative_position = $c->model('ChIP_Primer_Design')->new(
+								genome		=>	$c->request->parameters->{genome},
+								start		=>	$created_primer_insert->{left_primer_five_prime},
+								stop		=>	$created_primer_insert->{right_primer_five_prime},
+								chromosome	=>	$created_primer_insert->{chromosome},
+							);
+							my ($left_primer_relative_position_string,
+								$right_primer_relative_position_string) = $define_relative_position->define_relative_position($accession);
+							for ( my $i = 0; $i < @$left_primer_relative_position_string; $i++ ) {
+								$parsed_position_string .= " ($left_primer_relative_position_string->[$i] to $right_primer_relative_position_string->[$i])";
+							}
 						}
 						push(@{$created_primer_insert->{relative_locations}}, $parsed_position_string);
 					}
@@ -604,22 +487,10 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 			}
 			`rm $peaks_fh`;
 			# Check to see if there are any error messages to return to the user
-			if ( $structure->{peak_names_with_no_motif} || @$unable_to_make_primers ) {
-				my $error_message = "Primers for some of the intervals were not able to be designed for the following reasons:\n";
-				if ( $structure->{peak_names_with_no_motif} ) {
-					$error_message .= "No matches were found for the motif $structure->{motif_name} in any of these intervals: $structure->{peak_names_with_no_motif}.\n";
-				}
-				if ( @$unable_to_make_primers ) {
-					$error_message .= "Primers were not able to be made in the following locations:\n";
-					foreach my $design_try ( @$unable_to_make_primers ) {
-						foreach my $location ( keys %$design_try ) {
-							$error_message .= "In the peak: $location, coordinates: $design_try->{$location}\n";
-						}
-					}
-				}
+			if ( @$error_messages ) {
 				$c->stash(
 					template	=>	'chip_primer_design.tt',
-					error_msg	=>	$error_message,
+					error_msg	=>	$error_messages,
 					status_msg	=>	"Primers have been designed",
 					motifs		=>	$c->model('Available_Motifs')->available_motifs,
 					primers		=>	$created_primers_insert,
@@ -682,107 +553,14 @@ sub validated_primers_entry :Chained('/') :PathPart('validated_primers_entry') :
 					error_msg	=>	"Failed to copy '$primers_file' to  '$target': $!",
 				);
 			}
-			# Create a Hash Ref structure to hold information to be passed to the Catalyst Model
-			my $structure = {};
-			# Check to make sure the correct information has been entered in the uploaded file
-			open my $validated_primers_file, "<", $target or $c->stash(
-				template	=>	'validated_primers.tt',
-				error_msg	=>	"The file $target was unable to be opened. Please check the permissions on this file",
-			);
-			# Create an integer variable that tells the user the line number if there is an error in the file
-			my $line_number = 1;
-			# Create an Array Ref to hold errors found in the uploaded file
-			my $file_errors = [];
-			while (<$validated_primers_file>) {
-				my $line = $_;
-				chomp ($line);
-				# Create a boolean variable that will be used to determine whether the information from this primer
-				# line will be passed to the Catalyst Model
-				my $valid_primer_line = 1;
-				my ($primer_type, $left_primer_sequence, $right_primer_sequence, $accession, $user_name,
-					$efficiency, $left_primer_chip_location, $right_primer_chip_location, $genome ) = split(/\t/, $line);
-				# Make the $primer_type string lowercase
-				$primer_type = lc($primer_type);
-				# Make sure that the primer type is either 'chip' or 'mrna'
-				unless ( $primer_type eq 'chip' || $primer_type eq 'mrna' ) {
-					push (@$file_errors, "On line $line_number, the primer type is $primer_type, which is not 'chip' or 'mrna'");
-					$valid_primer_line = 0;
-				}
-				# Make sure that the primer strings entered contain only 'A', 'T', 'G', or 'C'
-				$left_primer_sequence = uc($left_primer_sequence);
-				$right_primer_sequence = uc($right_primer_sequence);
-				unless ( $left_primer_sequence =~ /^[ATGC]$/ ) {
-					push (@$file_errors, "On line $line_number, the left primer sequence: $left_primer_sequence, contains one or more invalid characters");
-					$valid_primer_line = 0;
-				}
-				unless ( $right_primer_sequence =~ /^[ATGC]$/ ) {
-					push (@$file_errors, "On line $line_number, the right primer sequence: $right_primer_sequence, contains one or more invalid characters");
-					$valid_primer_line = 0;
-				}
-				# Check to make sure that the user has entered their name
-				unless ( $user_name ) {
-					push (@$file_errors, "On line $line_number, the user name is not defined");
-					$valid_primer_line = 0;
-				}
-				# Check to make sure a numerical value has been entered for the efficiency
-				unless ( $efficiency =~ /^\d+\.\d+$|^\d+$/ ) {
-					push (@$file_errors, "On line $line_number, the efficiency entered: $efficiency is not a valid number");
-					$valid_primer_line = 0;
-				}
-				# If the primers are defined as mRNA primers, check to make sure the accession is valid
-				if ( $primer_type eq 'mrna' ) {
-					# This subroutine checks the database of accessions, gis and genomic
-					# coordinates for the user-entered accessions, returns an arrayref of
-					# accessions not found in the database
-					my $valid_accessions = {};
-					my $rs = $c->model('Valid_mRNA::Gene2accession')->search({
-							-or	=>	[
-								'mrna'		=>	[$accession],
-								'mrna_root'	=>	[$accession],
-							],
-						}
-					);
-					while ( my $result = $rs->next ) {
-						push ( @{$valid_accessions->{$accession}}, 
-							{
-								accession	=>	$result->mrna,
-								mrna_gi		=>	$result->mrna_gi,
-								dna_gi		=>	$result->dna_gi,
-								dna_start	=>	$result->dna_start,
-								dna_stop	=>	$result->dna_stop,
-								orienation	=>	$result->orientation,
-							}
-						);
-					}
-					# Test to ensure that that mRNA was found in the dispatch table
-					unless ( $valid_accessions->{$accession} ) {
-						push (@$file_errors, "On line $line_number, the accession: $accession is not found in our gene2accession database");
-						$valid_primer_line = 0;
-					}
-					# If the boolean $valid_primer_line is still true, pass the requisite information to the Array Ref of Hash Refs
-					if ( $valid_primer_line == 1 ) {
-						push( @{$structure->{mrna_primers_to_design}},
-							{
-								left_primer_sequence	=>	$left_primer_sequence,
-								right_primer_sequence	=>	$right_primer_sequence,
-								user_name				=>	$user_name,
-								efficiency				=>	$efficiency,
-								accession_and_position	=>	$valid_accessions,
-							}
-						);
-					} 
-				# If the primers are defined as ChIP primers, check to make sure the reqiured information has been entered
-				} elsif ( $primer_type eq 'chip' ) {
-					# Check to make sure the user has entered a 
-				}
-				# Increase the line number iterator
-				$line_number++;
-			}
+			# Check that the file contains valid information and extract the relevant information
+			# using the Catalyst Model
+			my ($structure, $error_messages) = $c->model('Validated_Primer_Entry')->valid_file($target);
 			# Remove the uploaded file as it is no longer necesary
 			`rm $target`;
 			# If no primers will be designed return the error string to the user
 			unless ( $structure->{mrna_primers_to_design} || $structure->{chip_primers_to_design} ) {
-				my $error_string = "Unable to enter validated primers for the following reasons:\n" . join("\n", @$file_errors);
+				my $error_string = "Unable to enter validated primers for the following reasons:\n" . join("\n", @$error_messages);
 				$c->stash(
 					template	=>	'validated_primers.tt',
 					error_msg	=>	$error_string,
