@@ -184,8 +184,9 @@ sub valid_bed_file {
 	my $bed_line_number = 1;
 	# Pre-declare a hash reference to ensure that the peak names are unique
 	my $peaks_names = {};
-	while (<$bed_file>) {
-		my $line = $_;
+	my @bed_file_lines = <$bed_file>;
+	for (my $i = 0; $i < 20; $i++) {
+		my $line = $bed_file_lines[$i];
 		chomp($line);
 		# Pre-declare a boolean value that will be used to determine if the coordinates of the BED
 		# file will be returned to the user
@@ -309,51 +310,95 @@ sub extend_coordinates {
 }
 
 sub define_relative_position {
-	my ($self, $accession) = @_;
+	my ($self, $created_primers_insert) = @_;
 	# Create an instance of Validated_Primer_Entry to use the accessions
 	# method which returns a tab-delimited string of the chromosome and
 	# the transcriptional start site
 	my $promoter_location = FoxPrimer::Model::Validated_Primer_Entry->new(
 		genome	=>	$self->genome,
 	);
-	# Pre-declare two strings to hold the relative position strings
-	my $left_primer_relative_position = []; 
-	my $right_primer_relative_position = [];
-	# Retreive the location string and split it to extract the transcriptional
-	# start site and the chromosome
-	foreach my $location_string ( @{$promoter_location->accessions->{$accession}} ) {
-		my ($chromosome, $transcriptional_start_site, $strand) = split(/\t/, $location_string);
-		# Check to make sure the chromosomes are the same, or throw a fatal error
-		if ( $chromosome eq $self->chromosome ) {
-			# Determine the length in basepair differences between the transcriptional
-			# start site and the 5'-end of each primer. Concommitantly determine the
-			# sign to be used as well.
-			if ( $strand eq '+' ) {
-				my $left_primer_delta = $self->start - $transcriptional_start_site;
-				if ( $left_primer_delta > 0 ) {
-					$left_primer_delta = '+' . $left_primer_delta;
+	# Retreive the hash of locations
+	my $locations_hash = $promoter_location->gene_bodies;
+	# Iterate through each of the created primers
+	foreach my $created_primer_insert (@$created_primers_insert) {
+		# If relative locations have been defined for this primer pair,
+		# iterate through these locations and parse the string
+		if ( $created_primer_insert->{relative_locations_raw_strings} ) {
+			foreach my $raw_relative_location ( @{$created_primer_insert->{relative_locations_raw_strings}} ) {
+				# Pre-declare a string to hold the location string that will be passed back into the hash
+				my $final_location_string = '';
+				# Extract the accession an general location from each raw relative location
+				# Pre-declare an accession and relative region string to hold the parsed strings
+				my $accession = '';
+				my $relative_region = '';
+				if ( $raw_relative_location =~ /^(\w\w_\d+)-Human_(.+)$|^(\w\w_\d+)-Mouse_(.+)$/ ) {
+					$accession = $1;
+					$relative_region = $2;
 				}
-				push(@$left_primer_relative_position, $left_primer_delta);
-				my $right_primer_delta = $self->stop - $transcriptional_start_site;
-				if ( $right_primer_delta > 0 ) {
-					$right_primer_delta = '+' . $right_primer_delta;
+				# If the strings have been filled by patter matching, proceed
+				if ( $accession && $relative_region ) {
+					# Substitute spaces in for underscore charaters in the $relative_region string
+					$relative_region =~ s/_/ /g;
+					# Extract the Array Ref of position strings from the Gene Body Hash Ref
+					my $gene_body_position_strings = $locations_hash->{$accession};
+					# Iterate through the position strings and extracting the positions
+					foreach my $gene_body_position_string (@$gene_body_position_strings) {
+						my ($chromosome, $start, $stop, $strand) = split(/\t/, $gene_body_position_string);
+						# Only proceed if the mapping for this transcript is on the same chromosome
+						# as the primer pair
+						if ($chromosome eq $created_primer_insert->{chromosome}) {
+							# Unless the primer pair is within 100Kb of the gene body, do not calculate the
+							# relative position
+							if (( abs($created_primer_insert->{left_primer_five_prime} - $start )) <= 100000 ||  # Left primer is within 100Kb of gene body
+								( abs($created_primer_insert->{right_primer_five_prime} - $start )) <= 100000 || # Right primer is within 100Kb of gene body
+								( abs($created_primer_insert->{left_primer_five_prime} - $stop )) <= 100000 ||   # Left primer is within 100Kb of gene body
+								( abs($created_primer_insert->{right_primer_five_prime} - $stop )) <= 100000 ||  # Right primer is within 100Kb of gene body
+								( ( $created_primer_insert->{left_primer_five_prime} >= $start &&
+								    $created_primer_insert->{left_primer_five_prime} <= $stop ) ||               # Left primer is inside the gene body
+								  ( $created_primer_insert->{left_primer_five_prime} >= $stop &&
+								    $created_primer_insert->{left_primer_five_prime} <= $start ) ) ||
+								( ( $created_primer_insert->{right_primer_five_prime} >= $start &&
+								    $created_primer_insert->{right_primer_five_prime} <= $stop ) ||               # Right primer is inside the gene body
+								  ( $created_primer_insert->{right_primer_five_prime} >= $stop &&
+								    $created_primer_insert->{right_primer_five_prime} <= $start ) )             ) {
+								# The strand the gene body is on will determine how the math is done to calculate
+								# the difference in bases between the transcriptional start site and the primer
+								# pair positions
+								# Pre-declare a scalar to hold the relative position values
+								my ($left_primer_relative_position, $right_primer_relative_position);
+								if ( $strand eq '+') {
+									# Relative positions are calculated by subtracting the start position of the
+									# gene body from the 5'-position of the primers
+									$left_primer_relative_position = $created_primer_insert->{left_primer_five_prime} - $start;
+									$right_primer_relative_position = $created_primer_insert->{right_primer_five_prime} - $start;
+								} elsif ( $strand eq '-' ) {
+									# Relative positions are calculated by subtracting the the 5'positions of the primers
+									# from the gene body stop site
+									$left_primer_relative_position = $stop - $created_primer_insert->{left_primer_five_prime};
+									$right_primer_relative_position = $stop - $created_primer_insert->{right_primer_five_prime};
+								} else {
+									die "There is a fatal problem with the Gene Body file in your installation. Please check the manual for definitions as to how these files should be structured and named\n";
+								}
+								# If the relative primer positions are positive values, append a '+' to the beginning of the string
+								if ( $left_primer_relative_position > 0 ) {
+									$left_primer_relative_position = '+' . $left_primer_relative_position;
+								}
+								if ( $right_primer_relative_position > 0 ) {
+									$right_primer_relative_position = '+' . $right_primer_relative_position;
+								}
+								# Create a final location string and add it to the relative_locations Array Ref in the created_primers_insert
+								# Hash Ref
+								push (@{$created_primer_insert->{relative_locations}}, $relative_region . ' of ' . $accession . " ($left_primer_relative_position to $right_primer_relative_position)");
+							}
+						}
+					}
+				} else {
+					die "There was a fatal error determining the accession and relative region. Please contact the system administrator\n";
 				}
-				push(@$right_primer_relative_position, $right_primer_delta);
-			} elsif ( $strand eq '-' ) {
-				my $left_primer_delta = $transcriptional_start_site - $self->stop;
-				if ( $left_primer_delta > 0 ) {
-					$left_primer_delta = '+' . $left_primer_delta;
-				}
-				push(@$left_primer_relative_position, $left_primer_delta);
-				my $right_primer_delta = $transcriptional_start_site - $self->start;
-				if ( $right_primer_delta > 0 ) {
-					$right_primer_delta = '+' . $right_primer_delta;
-				}
-				push(@$right_primer_relative_position, $right_primer_delta);
 			}
 		}
 	}
-	return ($left_primer_relative_position, $right_primer_relative_position);
+	return $created_primers_insert;
 }
 
 __PACKAGE__->meta->make_immutable;

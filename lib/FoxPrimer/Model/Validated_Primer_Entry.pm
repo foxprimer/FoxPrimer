@@ -36,45 +36,35 @@ has genome			=>	(
 	isa				=>	'Str',
 );
 
-has promoter_file	=>	(
+has gene_body_file	=>	(
 	is				=>	'rw',
 	isa				=>	'Str',
 	default			=>	sub {
 		my $self = shift;
 		my $genome = $self->genome;
 		if ( $genome eq 'mm9' ) {
-			return 'root/static/files/Mouse_Index/Mouse_Promoters.bed';
+			return 'root/static/files/Mouse_Gene_Bodies.bed';
 		} elsif ( $genome eq 'hg19' ) {
-			return 'root/static/files/Human_Index/Human_Promoters.bed';
+			return 'root/static/files/Human_Gene_Bodies.bed';
 		};
 	},
 	required		=>	1,
 	lazy			=>	1,
 );
 
-has accessions	=>	(
+has gene_bodies =>	(
 	is				=>	'ro',
 	isa				=>	'HashRef[ArrayRef]',
 	default			=>	sub {
 		my $self = shift;
-		my $promoter_fh = $self->promoter_file;
+		my $gene_body_fh = $self->gene_body_file;
 		my $accessions = {};
-		open my $promoter_file, "<", $promoter_fh or die "Could not read from $promoter_fh $!\n";
-		while (<$promoter_file>) {
+		open my $gene_body_file, "<", $gene_body_fh or die "Could not read from $gene_body_fh $!\n";
+		while (<$gene_body_file>) {
 			my $line = $_;
 			chomp($line);
-			my ($chr, $start, $stop, $name, $score, $strand) = split(/\t/, $line);
-			my $accession;
-			if ( $name =~ /^(\w\w_\d+)_up/ ) {
-				$accession = $1;
-			}
-			if ($accession) {
-				if ( $strand eq '+' ) {
-					push( @{$accessions->{$accession}}, join("\t", $chr, $stop, $strand));
-				} elsif ( $strand eq '-' ) {
-					push( @{$accessions->{$accession}}, join("\t", $chr, $start, $strand));
-				}
-			}
+			my ($chr, $start, $stop, $accession, $score, $strand) = split(/\t/, $line);
+			push( @{$accessions->{$accession}}, join("\t", $chr, $start, $stop, $strand));
 		}
 		return $accessions;
 	},

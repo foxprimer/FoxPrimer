@@ -40,9 +40,12 @@
 			<td><label>Known Motif</td>
 			<td><span class="small">Please select a motif (optional):</span>
 			<td>
-				<select name="known_motif"> [% FOREACH motif IN motifs %]
-					<option [% IF default_motif == motif %]selected [%END%]>[% motif %]</option>
-				[% END %]
+				<select name="known_motif"> 
+					<option selected>No Motif</option>
+					[% FOREACH motif IN motifs %]
+						<option>[% motif %]</option>
+					[% END %]
+				</select>
 			</td>
 		</tr>
 	</table>

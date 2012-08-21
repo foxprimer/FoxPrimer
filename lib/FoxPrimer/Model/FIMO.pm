@@ -103,7 +103,7 @@ sub run {
 	my $fimo_out_dir = 'tmp/fimo/';
 	my $motif = 'root/static/meme_motifs/' . $self->motif_name . '.meme';
 	my $fasta = 'tmp/fasta/temp.fa';
-	`$fimo_executable --oc $fimo_out_dir $motif $fasta`;
+	my @fimo_std_out = `$fimo_executable --oc $fimo_out_dir $motif $fasta`;
 	my $motif_positions = $self->_parse_fimo;
 	# Clean up the tmp directories
 	`rm tmp/fasta/temp.fa`;

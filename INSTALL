@@ -1,0 +1,259 @@
+To install the FoxPrimer Catalyst program, you must have either a Linux or OS X computer.
+
+This version will not work properly in Windows. There are no plans at this time to develop
+this program for windows.
+
+Installation instructions for Ubuntu 12.04 LTS
+
+These installation instructions assume you are starting with a clean installation of Ubuntu
+12.04 LTS.
+
+You must have root priveledges to install these packages and this program. Please check with
+your system administrator if you do not.
+
+Make sure your installation is up to date:
+
+	sudo apt-get update && sudo apt-get dist-upgrade
+
+Reboot the system (if you have installed many updates)
+
+	sudo reboot
+
+Install the make utility:
+
+	sudo apt-get install make
+
+Test the make installation:
+
+	which make
+	make -v
+
+	- If these two commands return the path and version information
+	  respectively, then installation went correctly.
+
+Install the gcc compiler to help with C code compilation for Perl modules:
+
+	sudo apt-get install gcc
+
+Test the gcc installation:
+
+	which gcc
+	gcc -v
+
+	- If these two commands return the path and version information
+	  respectively, then installation went correctly.
+
+Install the file utility Unzip:
+
+	sudo apt-get install unzip
+
+Test the Unzip installation:
+
+	which unzip
+	unzip -v
+
+	- If these two commands return the path and version information
+	  respectively, then installation went correctly.
+
+Install the Primer3 primer design program:
+
+	sudo apt-get install primer3
+
+Test the Primer3 installation:
+
+	which primer3_core
+	primer3_core -v
+
+	- If these two commands return the path and version information
+	  respectively, then installation went correctly.
+
+Install the Sim4 alignment program:
+
+	sudo apt-get install sim4
+
+Test the Sim4 installation:
+
+	which sim4
+	sim4 -v
+
+	- If these two commands return the path and version information
+	  respectively, then installation went correctly.
+
+Install the SQL database program SQLite3:
+
+	sudo apt-get install sqlite3
+
+Test the SQLite3 installation:
+
+	which sqlite3
+	sqlite3 --version
+
+	- If these two commands return the path and version information
+	  respectively, then installation went correctly.
+
+Install BedTools the suite of programs for BED file manipulation:
+
+	sudo apt-get install bedtools
+
+Test the installation of BedTools:
+
+	which intersectBed
+	intersectBed
+
+	- If these two commands return the path and version information
+	  respectively, then installation went correctly.
+
+Install the libpng developmental library:
+
+	sudo apt-get libpng-dev
+
+Install the Kent source of tools for the UCSC Genome Browser:
+
+	Download the Kent source:
+
+		wget http://hgdownload.cse.ucsc.edu/admin/jksrc.zip
+
+	Unzip the Kent source:
+
+		unzip jksrc.zip
+
+	Remove the .zip file, it is no longer needed:
+
+		rm jksrc.zip
+
+	Determine your CPU architecture:
+
+		uname -m
+
+	The string that is returned should be a short string, such
+	as: 'i386', 'i686', 'x86_64', 'sparc', or 'ppc'
+
+	Store the string in the Bash variable $MACHTYPE:
+
+		MACHTYPE=i686
+
+		-or-
+
+		MACHTYPE=x86_64
+
+	Test that the $MACHTYPE variable has been stored correctly and is
+	the same as the 'uname -m' command:
+
+		echo $MACHTYPE
+		uname -m
+
+		The previous two commands should return the same string.
+
+	Alternatively, this can be done in one step if the return of 'uname -m'
+	is a short string as described above:
+
+		export MACHTYPE=$(uname -m)
+
+	Now that we have set the $MACHTYPE variable, the Kent source tree
+	will place compiled utilities into $HOME/bin/$MACHTYPE. We must
+	create this directory before compiliing any utilities:
+
+		mkdir $HOME/bin
+		mkdir $HOME/bin/$MACHTYPE
+
+	This will be a minimal installation of the Kent source, if you would
+	like to install the full Kent source tree, refer to:
+
+		http://genome-source.cse.ucsc.edu/gitweb/?p=kent.git;a=blob;f=src/product/README.building.source
+
+	First, we need to build jkweb.a:
+
+		cd kent/src/lib
+		make
+
+	Second, we need to make stringify, which is required by some utilities to
+	be compiled:
+
+		cd ~
+		cd kent/src/utils/stringify
+		make
+
+	Next, we need to make twoBitToFa, which will extract Fasta sequences from
+	binary 2bit files:
+
+		cd ~
+		cd kent/src/utils/twoBitToFa
+		make
+
+	Now we should test the twoBitToFa executable to make sure that it has been
+	compiled correctly:
+
+		cd $HOME/bin/$MACHTYPE
+		./twoBitToFa
+
+		Running the executable should give usage information. If you do not
+		see any usage information, please check the above steps to ensure
+		that installation has gone correctly and that you did not receive
+		any errors during compilation.
+
+	Finally, we need to add the path to twoBitToFa to our Bash $PATH. To do this
+	we will edit our .bash_rc file.
+	Instructions below are for VIM, you can use your text editor of choice:
+
+		cd ~
+		vim .bashrc
+		G 	# This command will bring you to the bottom of the file, it is optional
+			# you can insert the following line anywhere in the file
+		o	# This command enters insert mode on a new line
+		export PATH="/home/jason/bin/x86_64:$PATH"	# Replace 'x86_64 with whatever
+								# MACHTYPE your machine is
+		<escape>	# The escape key exits insert mode
+		:wq		# colon(:)wq and then enter saves and quits the file
+
+	Once the file has been saved and you have exited your text editor shell, you need to
+	resource the .bashrc file with the following command:
+
+		source $HOME/.bashrc
+
+	Now test to make sure that the correct path has been added to your Bash $PATH with the
+	following command:
+
+		echo $PATH
+
+		This command should contain the string you just entered in your .bashrc file.
+		If it does not, please go back and check to make sure you have executed the
+		instructions properly.
+
+		twoBitToFa
+
+		The executable for twoBitToFa should be executable from anywhere now that the
+		path to this program has been added to the Bash $PATH.
+
+Now it is time to install the Perl modules needed to run the Catalyst Server and the dependencies
+used in FoxPrimer.
+
+Open the CPAN shell:
+
+	sudo cpan
+
+If necesary, update CPAN:
+
+	install CPAN
+	reload cpan
+
+Install Moose:
+
+	install Moose
+
+Install DBIx::Class
+
+	install DBIx::Class
+
+Install Catalyst
+
+	install Catalyst
+
+Install Catalyst::Devel
+
+	install Catalyst::Devel
+
+Install Catalyst::View::TT
+
+	install Catalyst::View::TT
+
+

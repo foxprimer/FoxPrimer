@@ -298,17 +298,17 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 			# Store the peaks file location in the Structure to be passed to the Catalyst Model
 			$structure->{peaks_file} = $peaks_fh;
 			# If the peaks are intervals, check to see if the user has chosen a motif from the list
-			if ( $c->request->parameters->{known_motif} ) {
+			$structure->{motif_name} = $c->request->parameters->{known_motif};
+			if ( $c->request->parameters->{known_motif} ne 'No Motif' ) {
 				# Retreive the motif file path from the Catalyst Model Available_Motifs and store it in the Structure
 				$structure->{motif_file} = $c->model('Available_Motifs')->motif_index->{$c->request->parameters->{known_motif}};
-				$structure->{motif_name} = $c->request->parameters->{known_motif};
 			}
 			# Pre-declare a Hash Ref to hold the Hash Refs of coordinates to design primers
 			my $coordinates_for_primer_design = [];
 			# If the primers will be designed around motifs, determine the positions of the motifs within each interval using FIMO
 			# Predeclare an Array Reference to hold the locations where a motif is not found.
 			my $no_motif_locations = [];
-			if ( $structure->{motif_name} ) {
+			if ( $structure->{motif_name} ne 'No Motif') {
 				# Iterate through the BED file, calling FIMO with the user-designated motif. If no motif is discovered in the interval
 				# return these coordinates to the user in the error message
 				# Make a call to the Catalyst Model for FIMO for each interval
@@ -330,7 +330,7 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 					}
 				}
 				# For each interval where a motif is not found, add to the error string
-				if (@$no_motif_locations) {
+				if ($no_motif_locations) {
 					foreach my $not_designed (@$no_motif_locations) {
 						push(@$error_messages, "The motif $structure->{motif_name} was not found in the peak $not_designed->{peak_name} which is on $not_designed->{chromosome} between positions $not_designed->{genomic_dna_start} and $not_designed->{genomic_dna_stop}.");
 					}
@@ -376,10 +376,10 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 			}
 			# For each interval where primers were unable to be made, add an error message
 			# to the error messages to be returned to the user
-			if ( @$unable_to_make_primers ) {
-					foreach my $not_designed (@$unable_to_make_primers) {
-						push(@$error_messages, "The motif $structure->{motif_name} was not found in the peak $not_designed->{peak_name} which is on $not_designed->{chromosome} between positions $not_designed->{genomic_dna_start} and $not_designed->{genomic_dna_stop}.");
-					}
+			if ( $unable_to_make_primers ) {
+				foreach my $not_designed (@$unable_to_make_primers) {
+					push(@$error_messages, "Primers were not able to be designed for the specified product size in the interval $not_designed->{peak_name} which is on $not_designed->{chromosome} between positions $not_designed->{genomic_dna_start} and $not_designed->{genomic_dna_stop}.");
+				}
 			}
 			# If no primers are designed return an error message to the user
 			unless (@$designed_primers) {
@@ -434,7 +434,7 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 			my $primer_pairs_locations = $peaks_to_genes->annotate_primer_pairs;
 			# Test to ensure that the primer pair was mapped to a relative position
 			foreach my $created_primer_insert ( @$created_primers_insert ) {
-				if ( @{$primer_pairs_locations->{$created_primer_insert->{primer_pair_id}}} ) {
+				if ( $primer_pairs_locations->{$created_primer_insert->{primer_pair_id}} ) {
 					# Extract the relative location id from the relative_location database
 					my $locations_result_set = $c->model('Created_ChIP_Primers::RelativeLocation');
 					foreach my $primer_pair_position ( @{$primer_pairs_locations->{$created_primer_insert->{primer_pair_id}}} ) {
@@ -444,28 +444,7 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 							}
 						);
 						push(@{$created_primer_insert->{relative_locations_id}}, $location_row->id);
-						# Parse the primer pair position string before adding it to the insert structure
-						my $parsed_position_string;
-						if ( $primer_pair_position =~ /^(.+?)-Human_(.+)$|^(.+?)-Human_(.+)$/ ) {
-							my $accession = $1;
-							my $location = $2;
-							$parsed_position_string = "$location of $accession";
-							# Use the ChIP_Primer_Design define_relative_position subroutine to
-							# determine the position of the 5'-end of each primer relative to the
-							# transcriptional start site
-							my $define_relative_position = $c->model('ChIP_Primer_Design')->new(
-								genome		=>	$c->request->parameters->{genome},
-								start		=>	$created_primer_insert->{left_primer_five_prime},
-								stop		=>	$created_primer_insert->{right_primer_five_prime},
-								chromosome	=>	$created_primer_insert->{chromosome},
-							);
-							my ($left_primer_relative_position_string,
-								$right_primer_relative_position_string) = $define_relative_position->define_relative_position($accession);
-							for ( my $i = 0; $i < @$left_primer_relative_position_string; $i++ ) {
-								$parsed_position_string .= " ($left_primer_relative_position_string->[$i] to $right_primer_relative_position_string->[$i])";
-							}
-						}
-						push(@{$created_primer_insert->{relative_locations}}, $parsed_position_string);
+						push(@{$created_primer_insert->{relative_locations_raw_strings}}, $location_row->location);
 					}
 					# Test to ensure that a relative location id has been retrieved
 					if ( @{$created_primer_insert->{relative_locations_id}} ) {
@@ -485,6 +464,13 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 					push(@{$created_primer_insert->{relative_locations}}, "There were no gene bodies within 100Kb of this primer pair");
 				}
 			}
+			# Use the define_relative_position subroutine from the ChIP_Primer_Design Model
+			# to determine the base position for each primer pair relative to the transcriptional
+			# start site of all transcripts within 100Kb
+			my $define_relative_positions = $c->model('ChIP_Primer_Design')->new(
+				genome	=>	$c->request->parameters->{genome},
+			);
+			$created_primers_insert = $define_relative_positions->define_relative_position($created_primers_insert);
 			`rm $peaks_fh`;
 			# Check to see if there are any error messages to return to the user
 			if ( @$error_messages ) {
