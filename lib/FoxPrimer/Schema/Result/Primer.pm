@@ -38,7 +38,13 @@ __PACKAGE__->table("primers");
 
 =head1 ACCESSORS
 
-=head2 primer_type
+=head2 id
+
+  data_type: 'integer'
+  is_auto_increment: 1
+  is_nullable: 0
+
+=head2 accession
 
   data_type: 'text'
   is_nullable: 1
@@ -48,52 +54,12 @@ __PACKAGE__->table("primers");
   data_type: 'text'
   is_nullable: 1
 
-=head2 mrna
-
-  data_type: 'text'
-  is_nullable: 0
-
-=head2 primer_pair_number
+=head2 primer_pair_type
 
   data_type: 'text'
   is_nullable: 1
 
-=head2 left_primer_sequence
-
-  data_type: 'text'
-  is_nullable: 0
-
-=head2 right_primer_sequence
-
-  data_type: 'text'
-  is_nullable: 0
-
-=head2 left_primer_tm
-
-  data_type: 'numeric'
-  is_nullable: 1
-
-=head2 right_primer_tm
-
-  data_type: 'numeric'
-  is_nullable: 1
-
-=head2 left_primer_coordinates
-
-  data_type: 'text'
-  is_nullable: 1
-
-=head2 right_primer_coordinates
-
-  data_type: 'text'
-  is_nullable: 1
-
-=head2 product_size
-
-  data_type: 'numeric'
-  is_nullable: 1
-
-=head2 product_penalty
+=head2 primer_pair_penalty
 
   data_type: 'numeric'
   is_nullable: 1
@@ -108,40 +74,117 @@ __PACKAGE__->table("primers");
   data_type: 'text'
   is_nullable: 1
 
+=head2 product_size
+
+  data_type: 'integer'
+  is_nullable: 1
+
+=head2 left_primer_sequence
+
+  data_type: 'text'
+  is_nullable: 1
+
+=head2 right_primer_sequence
+
+  data_type: 'text'
+  is_nullable: 1
+
+=head2 left_primer_length
+
+  data_type: 'integer'
+  is_nullable: 1
+
+=head2 right_primer_length
+
+  data_type: 'integer'
+  is_nullable: 1
+
+=head2 left_primer_tm
+
+  data_type: 'numeric'
+  is_nullable: 1
+
+=head2 right_primer_tm
+
+  data_type: 'numeric'
+  is_nullable: 1
+
+=head2 left_primer_five_prime
+
+  data_type: 'integer'
+  is_nullable: 1
+
+=head2 left_primer_three_prime
+
+  data_type: 'integer'
+  is_nullable: 1
+
+=head2 right_primer_five_prime
+
+  data_type: 'integer'
+  is_nullable: 1
+
+=head2 right_primer_three_prime
+
+  data_type: 'integer'
+  is_nullable: 1
+
 =cut
 
 __PACKAGE__->add_columns(
-  "primer_type",
+  "id",
+  { data_type => "integer", is_auto_increment => 1, is_nullable => 0 },
+  "accession",
   { data_type => "text", is_nullable => 1 },
   "description",
   { data_type => "text", is_nullable => 1 },
-  "mrna",
-  { data_type => "text", is_nullable => 0 },
-  "primer_pair_number",
+  "primer_pair_type",
   { data_type => "text", is_nullable => 1 },
-  "left_primer_sequence",
-  { data_type => "text", is_nullable => 0 },
-  "right_primer_sequence",
-  { data_type => "text", is_nullable => 0 },
-  "left_primer_tm",
-  { data_type => "numeric", is_nullable => 1 },
-  "right_primer_tm",
-  { data_type => "numeric", is_nullable => 1 },
-  "left_primer_coordinates",
-  { data_type => "text", is_nullable => 1 },
-  "right_primer_coordinates",
-  { data_type => "text", is_nullable => 1 },
-  "product_size",
-  { data_type => "numeric", is_nullable => 1 },
-  "product_penalty",
+  "primer_pair_penalty",
   { data_type => "numeric", is_nullable => 1 },
   "left_primer_position",
   { data_type => "text", is_nullable => 1 },
   "right_primer_position",
   { data_type => "text", is_nullable => 1 },
+  "product_size",
+  { data_type => "integer", is_nullable => 1 },
+  "left_primer_sequence",
+  { data_type => "text", is_nullable => 1 },
+  "right_primer_sequence",
+  { data_type => "text", is_nullable => 1 },
+  "left_primer_length",
+  { data_type => "integer", is_nullable => 1 },
+  "right_primer_length",
+  { data_type => "integer", is_nullable => 1 },
+  "left_primer_tm",
+  { data_type => "numeric", is_nullable => 1 },
+  "right_primer_tm",
+  { data_type => "numeric", is_nullable => 1 },
+  "left_primer_five_prime",
+  { data_type => "integer", is_nullable => 1 },
+  "left_primer_three_prime",
+  { data_type => "integer", is_nullable => 1 },
+  "right_primer_five_prime",
+  { data_type => "integer", is_nullable => 1 },
+  "right_primer_three_prime",
+  { data_type => "integer", is_nullable => 1 },
 );
 
 =head1 PRIMARY KEY
+
+=over 4
+
+=item * L</id>
+
+=back
+
+=cut
+
+__PACKAGE__->set_primary_key("id");
+
+=head1 UNIQUE CONSTRAINTS
+
+=head2 C<left_primer_sequence_right_primer_sequence_accession_unique>
 
 =over 4
 
@@ -149,17 +192,20 @@ __PACKAGE__->add_columns(
 
 =item * L</right_primer_sequence>
 
-=item * L</mrna>
+=item * L</accession>
 
 =back
 
 =cut
 
-__PACKAGE__->set_primary_key("left_primer_sequence", "right_primer_sequence", "mrna");
+__PACKAGE__->add_unique_constraint(
+  "left_primer_sequence_right_primer_sequence_accession_unique",
+  ["left_primer_sequence", "right_primer_sequence", "accession"],
+);
 
 
-# Created by DBIx::Class::Schema::Loader v0.07024 @ 2012-06-05 21:31:55
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:0bFh3LoTkI3vWWJ3usQzCQ
+# Created by DBIx::Class::Schema::Loader v0.07025 @ 2012-08-24 18:14:58
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:3q1tHV/E/1Yj5e9P5XGHBQ
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

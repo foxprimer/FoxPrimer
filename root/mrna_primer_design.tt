@@ -1,4 +1,3 @@
-[% USE Dumper %]
 [% WRAPPER default.tt title = c.config.name ; END %]
 [% META title = 'cDNA Primer Design' %]
 <div id="stylized" class="myform" align="center">
@@ -50,36 +49,42 @@
 	</p>
 	[% IF primer_results %]
 		<table border="1">
-			<th>Primer Type</th>
-			<th>mRNA Description</th>
 			<th>NCBI Accession</th>
-			<th>Primer Pair Number</th>
-			<th>Left Primer Sequence</th>
-			<th>Right Primer Sequence</th>
-			<th>Left Primer Tm</th>
-			<th>Right Primer Tm</th>
-			<th>Left Primer Coordinates</th>
-			<th>Right Primer Coordinates</th>
-			<th>Product Size</th>
+			<th>mRNA Description</th>
+			<th>Primer Type</th>
 			<th>Primer Pair Penalty</th>
 			<th>Left Primer Position</th>
 			<th>Right Primer Position</th>
-			[%WHILE (primer_row = primer_results.next) %]
+			<th>Product Size</th>
+			<th>Left Primer Sequence</th>
+			<th>Right Primer Sequence</th>
+			<th>Left Primer Length</th>
+			<th>Right Primer Length</th>
+			<th>Left Primer Tm</th>
+			<th>Right Primer Tm</th>
+			<th>Left Primer Five Prime Position</th>
+			<th>Left Primer Three Prime Position</th>
+			<th>Right Primer Five Prime Position</th>
+			<th>Right Primer Three Prime Position</th>
+			[% FOREACH primer_row IN primer_results %]
 				<tr>
-					<td>[% primer_row.primer_type %]</td>
+					<td>[% primer_row.accession %]</td>
 					<td>[% primer_row.description %]</td>
-					<td>[% primer_row.mrna %]</td>
-					<td>[% primer_row.primer_pair_number %]</td>
-					<td>[% primer_row.left_primer_sequence %]</td>
-					<td>[% primer_row.right_primer_sequence %]</td>
-					<td>[% primer_row.left_primer_tm %]</td>
-					<td>[% primer_row.right_primer_tm %]</td>
-					<td>[% primer_row.left_primer_coordinates %]</td>
-					<td>[% primer_row.right_primer_coordinates %]</td>
-					<td>[% primer_row.product_size %]</td>
-					<td>[% primer_row.product_penalty %]</td>
+					<td>[% primer_row.primer_pair_type %]</td>
+					<td>[% primer_row.primer_pair_penalty %]</td>
 					<td>[% primer_row.left_primer_position %]</td>
 					<td>[% primer_row.right_primer_position %]</td>
+					<td>[% primer_row.product_size %]</td>
+					<td>[% primer_row.left_primer_sequence %]</td>
+					<td>[% primer_row.right_primer_sequence %]</td>
+					<td>[% primer_row.left_primer_length %]</td>
+					<td>[% primer_row.right_primer_length %]</td>
+					<td>[% primer_row.left_primer_tm %]</td>
+					<td>[% primer_row.right_primer_tm %]</td>
+					<td>[% primer_row.left_primer_five_prime %]</td>
+					<td>[% primer_row.left_primer_three_prime %]</td>
+					<td>[% primer_row.right_primer_five_prime %]</td>
+					<td>[% primer_row.right_primer_three_prime %]</td>
 				</tr>
 			[% END %]
 		</table>

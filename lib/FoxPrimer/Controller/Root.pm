@@ -56,6 +56,78 @@ sub mrna_primer_design_shell :Local {
 	);
 }
 
+=head2 search_database
+
+This is the form for searching both the created and validated primer
+databases
+
+=cut
+
+sub search_database :Local {
+	my ($self, $c) = @_;
+	if ( $c->request->parameters->{search_string} ) {
+		# Pre-declare a hash-ref to hold any possible RefSeq accessions entered
+		# by the user in the search string
+		my $accessions_to_search = [];
+		# Use a regular expression to extract any possible RefSeq accessions
+		# and push these onto the accessions_to_search Array Ref
+		while ( $c->request->parameters->{search_string} =~ /(\w\w_\d+)/g ) {
+			push (@$accessions_to_search, $1);
+		}
+		# Pre-declare an empty Array Ref for each type of primer to return
+		# to the user
+		my $created_cdna_primers = [];
+		my $created_chip_primers = [];
+		my $validated_cdna_primers = [];
+		my $validated_chip_primers = [];
+		# Create an instance of each of the two cDNA database result sets
+		my $created_mrna_result_set = $c->model('Created_Primers::Primer');
+		my $created_mrna_description_search_results = $created_mrna_result_set->search(
+			{
+				description	=>	
+				{
+					'like',		'%' . $c->request->parameters->{search_string} . '%',
+				},
+			}
+		);
+		# Iterate through the created cDNA search results adding each row to the Array Ref
+		while ( my $created_mrna_result = $created_mrna_description_search_results->next ) {
+			push (@$created_cdna_primers, $created_mrna_result);
+		}
+		# If there are any RefSeq accessions identified, search the ChIP/Genomic databases and the mRNA
+		# databases
+		if ( @$accessions_to_search ) {
+			my $chip_primers_found = $c->model('Validated_Primer_Entry')->chip_primer_search($c, $accessions_to_search);
+			if ( $chip_primers_found->{created_primers} ) {
+				push (@$created_chip_primers, @{$chip_primers_found->{created_primers}});
+			}
+			if ( $chip_primers_found->{validated_primers} ) {
+				push (@$validated_chip_primers, @{$chip_primers_found->{validated_primers}});
+			}
+			my $cdna_primers_found = $c->model('Validated_Primer_Entry')->cdna_primer_search($c, $accessions_to_search);
+			if ( $cdna_primers_found->{created_primers} ) {
+				push (@$created_cdna_primers, @{$cdna_primers_found->{created_primers}});
+			}
+			if ( $cdna_primers_found->{validated_primers} ) {
+				push (@$validated_cdna_primers, @{$cdna_primers_found->{validated_primers}});
+			}
+		}
+		# Return the results to the user.
+		$c->stash(
+			template					=>	'search_database.tt',
+			created_primer_results		=>	$created_cdna_primers,
+			created_chip_primers		=>	$created_chip_primers,
+			validated_primer_results	=>	$validated_cdna_primers,
+			validated_chip_primers		=>	$validated_chip_primers,
+		);
+	} else {
+		$c->stash(
+			template	=>	'search_database.tt',
+			status_msg	=>	"Please enter a search term in the search field to begin.",
+		);
+	}
+}
+
 =head2 mrna_primer_design
 
 This is the hidden subroutine/webpage, which checks the information entered by
@@ -66,151 +138,76 @@ the user and sends it to the business model to be processed and returned.
 sub mrna_primer_design :Chained('/') :PathPart('mrna_primer_design') :Args(0) {
 	# Default paramets passed to a zero-argument part path
 	my ($self, $c) = @_;
-	# Predeclare the structure which we will place all the variables
-	# from the body of the HTML
-	my $structure;
-	$structure->{species}		=	$c->req->body_params->{species};
-	$structure->{genes}			=	$c->req->body_params->{genes};
-	# remove whitespace from the genes field
-	$structure->{genes} =~ s/\s//g;
-	# if the user has entered a blank field in the genes field
-	# return an error
-	if ( $structure->{genes} eq '' ) {
+	# Use the validate_form subroutine in the Model mRNA_Primer_Design
+	# to validate that the form has been filled out in it's entirety
+	my $validate_form = $c->model('mRNA_Primer_Design')->new();
+	my ($form_errors, $structure) = $validate_form->validate_form($c->request->parameters);
+	# If there were any errors in the form, return the error messages
+	# to the user
+	if ( @$form_errors ) {
 		$c->stash(
-				error_msg	=>	'You must enter an NCBI mRNA accession',
+				error_msg	=>	$form_errors,
 				template	=>	'mrna_primer_design.tt',
 		);
 	} else {
-		# predeclare an arrayref to hold the list of ncbi accessions
-		my $genes = [];
-		# if there is more than one accession listed, split them by
-		# the comma-delimiter
-		if ($structure->{genes} =~ /,/) {
-			my @temp_genes = split(/,/, $structure->{genes});
-			foreach my $temp_gene(@temp_genes) {
-				push (@$genes, $temp_gene);
-			}
-		} else {
-			push (@$genes, $structure->{genes});
-		}
-		$structure->{accessions} = $genes;
-		if ($structure->{accessions} eq '') {
+		# If the rest of the form has been filled out correctly, pass the
+		# accessions string to the Catalyst Model mRNA_Primer_Design to
+		# use the extract_and_validate_accessions subroutine to extract
+		# accessions and validate whether the NCBI:Gene2Accession database
+		# contains the requisite information to make primers for that accession
+		my $mrna_primer_design = $c->model('mRNA_Primer_Design')->new(
+			number_per_type		=>	$structure->{number_per_type},
+			intron_size			=>	$structure->{intron_size},
+			product_size		=>	$structure->{product_size},
+			species				=>	$structure->{species},
+		);
+		my ($invalid_accessions, $valid_accessions_found) = $mrna_primer_design->extract_and_validate_accessions($structure->{genes});
+		# If there are no valid accessions found return the error messages to
+		# the user
+		if ( $valid_accessions_found == 0) {
 			$c->stash(
-			error_msg	=>	'You must enter an NCBI mRNA accession',
-			template	=>	'mrna_primer_design.tt',
+					error_msg	=>	$invalid_accessions,
+					template	=>	'mrna_primer_design.tt',
 			);
 		} else {
-			$structure->{product_size}	=	$c->req->body_params->{product_size};
-			# remove whitespace from the product size field
-			$structure->{product_size} =~ s/\s//g;
-			# predeclare variables for the minimum and maximum product sizes defined
-			# in the product size field 
-			my ($product_min, $product_max);
-			# use regular expressions to extract min and max product sizes from the
-			# product size field
-			if ($structure->{product_size} =~ /^(\d+)-(\d+)$/) {
-				$product_min = $1;
-				$product_min = int($product_min + 0.5);
-				$product_max = $2;
-				$product_max = int($product_max + 0.5);
-				$structure->{intron_size} = $c->req->body_params->{intron_size};
-				# remove whitespace from the intron size field
-				$structure->{intron_size} =~ s/\s//g;
-				# test the intron size field to ensure that it is an integer
-				if ( $structure->{intron_size} =~ /^\d+$/ ) {
-					$structure->{number_per_type} = $c->req->body_params->{number_per_type};
-					# remove whitespace from the number per type field
-					$structure->{number_per_type} =~ s/\s//g;
-					# test the number per type field to ensure that it is an integer
-					unless ( $structure->{number_per_type} =~ /^\d+$/ ) {
-						$c->stash(
-								error_msg	=>	"You must enter an integer value as the number per type",
-								templare	=>	'mrna_primer_design.tt',
-						);
-					}
-					# This subroutine checks the database of accessions, gis and genomic
-					# coordinates for the user-entered accessions, returns an arrayref of
-					# accessions not found in the database
-					my $valid_accessions = {};
-					my $list_of_found_accessions = {};
-					my $invalid_accessions = [];
-					my $rs = $c->model('Valid_mRNA::Gene2accession')->search({
-							-or	=>	[
-								'mrna'		=>	[@$genes],
-								'mrna_root'	=>	[@$genes],
-							],
-						}
+			# Use the mRNA_Primer_Design object to create primers with the valid
+			# accessions that were found
+			# Pre-declare an Array Ref to hold the error messages from creating primers
+			my $design_error_messages = [];
+			# Pre-declare an Array Ref to hold the primer insert statement
+			my $primer_insert = [];
+			($design_error_messages, $primer_insert) = $mrna_primer_design->create_primers;
+			# If there are primers to be inserted into the database, insert them into the database
+			# and return them to the user
+			if ( @$primer_insert ) {
+				# Create an instance of the created mRNA primers resultset
+				my $created_primers_result_set = $c->model('Created_Primers::Primer');
+				# Insert the primers into the created primers database
+				$created_primers_result_set->populate(
+					$primer_insert
+				);
+				if ( @$invalid_accessions || @$design_error_messages) {
+					push (@$invalid_accessions, @$design_error_messages);
+					$c->stash(
+							status_msg			=>	"Primers have been designed for some accessions entered.",
+							error_msg			=>	$invalid_accessions,
+							template			=>	'mrna_primer_design.tt',
+							primer_results		=>	$primer_insert,
 					);
-					while ( my $result = $rs->next ) {
-						unless ( defined ( $list_of_found_accessions->{$result->mrna} ) ) {
-							$list_of_found_accessions->{$result->mrna} = 1;
-						}
-						unless ( defined ( $list_of_found_accessions->{$result->mrna_root} ) ) {
-							$list_of_found_accessions->{$result->mrna_root} = 1;
-						}
-						push ( @{$valid_accessions->{$result->mrna}}, join("\t", $result->mrna, $result->mrna_gi, $result->dna_gi,
-							$result->dna_start, $result->dna_stop, $result->orientation));
-					}
-					$structure->{valid_accessions} = $valid_accessions;
-					# if accessions are not found in the database they are returned to the
-					# user as a string of accessions in the error message field. If any
-					# accessions entered are valid, these are sent to the create primers
-					# subroutine and the results are returned to the user.
-					foreach my $gene (@$genes) {
-						unless ( defined( $list_of_found_accessions->{$gene} ) ) {
-							push (@$invalid_accessions, $gene);
-						}
-					}
-					if ( %$valid_accessions ) {
-						my $number_of_valid_accessions = 0;
-						foreach my $valid_accession ( keys $valid_accessions ) {
-							$number_of_valid_accessions++;
-						}
-						my $total_number_to_make = @$genes;
-						if ( $number_of_valid_accessions == $total_number_to_make ) {
-							my $return_accessions = $c->model('mRNA_Primer_Design')->create_primers($structure);
-							`rm temp.out`;
-							my $primer_results = $c->model('Created_Primers::Primer')->search(
-										{ 'mrna'	=>	$return_accessions },
-										{ order_by	=>	{ -asc	=>	'product_penalty'} }
-									);
-							$c->stash(
-									structure		=>	$structure,
-									primer_results	=>	$primer_results,
-									template		=>	'mrna_primer_design.tt',
-									status_msg		=>	'Your primers have been designed!',
-							);
-						} else {
-							my $error_string = join(", ", @$invalid_accessions);
-							my $return_accessions = $c->model('mRNA_Primer_Design')->create_primers($structure);
-							my $primer_results = $c->model('Created_Primers::Primer')->search(
-										{ 'mrna'	=>	$return_accessions },
-										{ order_by	=>	{ -asc	=>	'product_penalty'} }
-									);
-							$c->stash(
-									structure		=>	$structure,
-									error_msg		=>	"Unfortunately, the following accessions were not found in our NCBI:gene2accession database: $error_string",
-									status_msg		=>	"Your primers have been designed!",
-									primer_results	=>	$primer_results,
-									template		=>	'mrna_primer_design.tt',
-							);
-						}
-					} else {
-						my $error_string = join(", ", @$invalid_accessions);
-						$c->stash(
-							template		=>	'mrna_primer_design.tt',
-							error_msg		=>	"Unfortunately, the following accessions were not found in our NCBI:gene2accession database: $error_string",
-						);
-					}
 				} else {
 					$c->stash(
-								error_msg	=>	"You must enter an integer value for the intron size",
-								template	=>	'mrna_primer_design.tt',
+							status_msg			=>	"Primers have been designed for all accessions entered.",
+							template			=>	'mrna_primer_design.tt',
+							primer_results		=>	$primer_insert,
 					);
 				}
 			} else {
+				# If there were errors in designing primers, add these to the invalid accessions error string
+				if ( @$design_error_messages ) {
+					push (@$invalid_accessions, @$design_error_messages);
+				}
 				$c->stash(
-						error_msg	=>	"You must enter integer values for the product sizes and the product min and product max seperated by a hyphen '-'.",
+						error_msg	=>	$invalid_accessions,
 						template	=>	'mrna_primer_design.tt',
 				);
 			}

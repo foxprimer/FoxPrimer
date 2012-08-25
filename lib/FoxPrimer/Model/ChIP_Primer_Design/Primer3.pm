@@ -114,7 +114,7 @@ sub design_primers {
 	# Create and run and instance of Primer3
 	my $primer3 = FoxPrimer::Model::Updated_Primer3_Run->new(
 		-seq		=>	$seq,
-		-outfile	=>	'temp.out',
+		-outfile	=>	'tmp/primer3/temp.out',
 		-path		=>	$self->primer3_executable,
 	);
 	if ( $self->relative_coordinates_string ) {
@@ -159,7 +159,7 @@ sub design_primers {
 	}
 	# Clean up the temporary files
 	`rm tmp/fasta/temp.fa`;
-	`rm temp.out`;
+	`rm tmp/primer3/temp.out`;
 	return $created_chip_primers;
 }
 

@@ -185,7 +185,14 @@ sub valid_bed_file {
 	# Pre-declare a hash reference to ensure that the peak names are unique
 	my $peaks_names = {};
 	my @bed_file_lines = <$bed_file>;
-	for (my $i = 0; $i < 20; $i++) {
+	# Pre-declare a maximum number of bed lines to be processed based on your server
+	my $max_bed_lines = 20;
+	# If the number of lines in the file uploaded by the user is less than your max
+	# change the max to this number
+	if ( @bed_file_lines < $max_bed_lines ) {
+		$max_bed_lines = @bed_file_lines
+	}
+	for (my $i = 0; $i < $max_bed_lines; $i++) {
 		my $line = $bed_file_lines[$i];
 		chomp($line);
 		# Pre-declare a boolean value that will be used to determine if the coordinates of the BED

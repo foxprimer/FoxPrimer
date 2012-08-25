@@ -1,0 +1,195 @@
+[% WRAPPER default.tt title = c.config.name ; END %]
+[% META title = 'Search Primer Database' %]
+<div id="stylized" class="myform" align="center">
+<form name="search_database" method=POST action="search_database">
+	<p>
+		This search box allows you search the primers database.
+	</p>
+	<p>
+		Entering a RefSeq mRNA Accession will search both the cDNA primers and the ChIP/genomic DNA primers.
+	</p>
+	<p>
+		Searching by gene symbol, or keyword will only search the cDNA primers database.
+	</p>
+	<table>
+	<tr>
+		<td><label>Search terms:</td>
+		<td><span class="small">Please enter your search terms</span>
+		<td><input type="text" name="search_string" title="Search"></td>
+	</tr>
+	</table>
+	</table>
+	<p></p>
+	<p>
+		<button type="submit">Submit Query!</button>
+	</p>
+	[% IF validated_primer_results %]
+		<p></p>
+		<p>
+			Validated cDNA Primer Results:
+		</p>
+		<table border="1">
+			<th>NCBI Accession</th>
+			<th>mRNA Description</th>
+			<th>Primer Type</th>
+			<th>Primer Pair Penalty</th>
+			<th>Left Primer Position</th>
+			<th>Right Primer Position</th>
+			<th>Product Size</th>
+			<th>Left Primer Sequence</th>
+			<th>Right Primer Sequence</th>
+			<th>Left Primer Length</th>
+			<th>Right Primer Length</th>
+			<th>Left Primer Tm</th>
+			<th>Right Primer Tm</th>
+			<th>Left Primer Five Prime Position</th>
+			<th>Left Primer Three Prime Position</th>
+			<th>Right Primer Five Prime Position</th>
+			<th>Right Primer Three Prime Position</th>
+			[% FOREACH primer_row IN validated_primer_results %]
+				<tr>
+					<td>[% primer_row.accession %]</td>
+					<td>[% primer_row.description %]</td>
+					<td>[% primer_row.primer_pair_type %]</td>
+					<td>[% primer_row.primer_pair_penalty %]</td>
+					<td>[% primer_row.left_primer_position %]</td>
+					<td>[% primer_row.right_primer_position %]</td>
+					<td>[% primer_row.product_size %]</td>
+					<td>[% primer_row.left_primer_sequence %]</td>
+					<td>[% primer_row.right_primer_sequence %]</td>
+					<td>[% primer_row.left_primer_length %]</td>
+					<td>[% primer_row.right_primer_length %]</td>
+					<td>[% primer_row.left_primer_tm %]</td>
+					<td>[% primer_row.right_primer_tm %]</td>
+					<td>[% primer_row.left_primer_five_prime %]</td>
+					<td>[% primer_row.left_primer_three_prime %]</td>
+					<td>[% primer_row.right_primer_five_prime %]</td>
+					<td>[% primer_row.right_primer_three_prime %]</td>
+				</tr>
+			[% END %]
+		</table>
+	[% END %]
+	[% IF validated_chip_primers %]
+		<p></p>
+		<p>
+			Validated ChIP/Genomic Primer Results:
+		</p>
+		<table border="1">
+			<th>Left Primer Sequence</th>
+			<th>Right Primer Sequence</th>
+			<th>Chromosome</th>
+			<th>Left Primer 5'-Position</th>
+			<th>Right Primer 5'-Position</th>
+			<th>Product Size</th>
+			<th>Left Primer Length</th>
+			<th>Right Primer Length</th>
+			<th>Left Primer Tm</th>
+			<th>Right Primer Tm</th>
+			<th>Primer Pair Penalty</th>
+			<th>Relative Location(s)</th>
+			[% FOREACH primer IN validated_chip_primers %]
+				<tr>
+					<td>[% primer.left_primer_sequence FILTER upper %]</td>
+					<td>[% primer.right_primer_sequence FILTER upper %]</td>
+					<td>[% primer.chromosome %]</td>
+					<td>[% primer.left_primer_five_prime %]</td>
+					<td>[% primer.right_primer_five_prime %]</td>
+					<td>[% primer.product_size %]</td>
+					<td>[% primer.left_primer_three_prime - primer.left_primer_five_prime %]</td>
+					<td>[% primer.right_primer_five_prime - primer.right_primer_three_prime %]</td>
+					<td>[% primer.left_primer_tm %]</td>
+					<td>[% primer.right_primer_tm %]</td>
+					<td>[% primer.primer_pair_penalty %]</td>
+					<td>
+						[% primer.relative_locations.join(', ') %]
+					</td>
+				</tr>
+			[% END %]
+		</table>
+	[% END %]
+	[% IF created_primer_results %]
+		<p></p>
+		<p>
+			Created cDNA Primer Results:
+		</p>
+		<table border="1">
+			<th>NCBI Accession</th>
+			<th>mRNA Description</th>
+			<th>Primer Type</th>
+			<th>Primer Pair Penalty</th>
+			<th>Left Primer Position</th>
+			<th>Right Primer Position</th>
+			<th>Product Size</th>
+			<th>Left Primer Sequence</th>
+			<th>Right Primer Sequence</th>
+			<th>Left Primer Length</th>
+			<th>Right Primer Length</th>
+			<th>Left Primer Tm</th>
+			<th>Right Primer Tm</th>
+			<th>Left Primer Five Prime Position</th>
+			<th>Left Primer Three Prime Position</th>
+			<th>Right Primer Five Prime Position</th>
+			<th>Right Primer Three Prime Position</th>
+			[% FOREACH primer_row IN created_primer_results %]
+				<tr>
+					<td>[% primer_row.accession %]</td>
+					<td>[% primer_row.description %]</td>
+					<td>[% primer_row.primer_pair_type %]</td>
+					<td>[% primer_row.primer_pair_penalty %]</td>
+					<td>[% primer_row.left_primer_position %]</td>
+					<td>[% primer_row.right_primer_position %]</td>
+					<td>[% primer_row.product_size %]</td>
+					<td>[% primer_row.left_primer_sequence %]</td>
+					<td>[% primer_row.right_primer_sequence %]</td>
+					<td>[% primer_row.left_primer_length %]</td>
+					<td>[% primer_row.right_primer_length %]</td>
+					<td>[% primer_row.left_primer_tm %]</td>
+					<td>[% primer_row.right_primer_tm %]</td>
+					<td>[% primer_row.left_primer_five_prime %]</td>
+					<td>[% primer_row.left_primer_three_prime %]</td>
+					<td>[% primer_row.right_primer_five_prime %]</td>
+					<td>[% primer_row.right_primer_three_prime %]</td>
+				</tr>
+			[% END %]
+		</table>
+	[% END %]
+	[% IF created_chip_primers %]
+		<p></p>
+		<p>
+			Created ChIP/Genomic DNA Primer Results:
+		</p>
+		<table border="1">
+			<th>Left Primer Sequence</th>
+			<th>Right Primer Sequence</th>
+			<th>Chromosome</th>
+			<th>Left Primer 5'-Position</th>
+			<th>Right Primer 5'-Position</th>
+			<th>Product Size</th>
+			<th>Left Primer Length</th>
+			<th>Right Primer Length</th>
+			<th>Left Primer Tm</th>
+			<th>Right Primer Tm</th>
+			<th>Primer Pair Penalty</th>
+			<th>Relative Location(s)</th>
+			[% FOREACH primer IN created_chip_primers %]
+				<tr>
+					<td>[% primer.left_primer_sequence FILTER upper %]</td>
+					<td>[% primer.right_primer_sequence FILTER upper %]</td>
+					<td>[% primer.chromosome %]</td>
+					<td>[% primer.left_primer_five_prime %]</td>
+					<td>[% primer.right_primer_five_prime %]</td>
+					<td>[% primer.product_size %]</td>
+					<td>[% primer.left_primer_three_prime - primer.left_primer_five_prime %]</td>
+					<td>[% primer.right_primer_five_prime - primer.right_primer_three_prime %]</td>
+					<td>[% primer.left_primer_tm %]</td>
+					<td>[% primer.right_primer_tm %]</td>
+					<td>[% primer.primer_pair_penalty %]</td>
+					<td>
+						[% primer.relative_locations.join(', ') %]
+					</td>
+				</tr>
+			[% END %]
+		</table>
+	[% END %]
+</form>
+</div>

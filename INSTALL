@@ -103,9 +103,30 @@ Test the installation of BedTools:
 	- If these two commands return the path and version information
 	  respectively, then installation went correctly.
 
+Install Git
+
+	sudo apt-get install git
+
+Install the Perl XML Parsing library:
+
+	sudo apt-get install libxml-sax-expat-perl
+
 Install the libpng developmental library:
 
 	sudo apt-get libpng-dev
+
+Install the GD graphics library perl wrapper
+
+	sudo apt-get libgd-gd2-perl
+
+Install the MEME suite of motif discovery and recognition tools
+
+	wget http://meme.nbcr.net/downloads/meme_current.tar.gz
+	tar -zxvf meme_current.tar.gz
+	./configure
+	make
+	make test
+	make install
 
 Install the Kent source of tools for the UCSC Genome Browser:
 
@@ -256,4 +277,141 @@ Install Catalyst::View::TT
 
 	install Catalyst::View::TT
 
+Install Catalyst::Model::DBIC::Schema
 
+	install Catalyst::Model::DBIC::Schema
+
+Install MooseX::MarkAsMethods
+
+	install MooseX::MarkAsMethods
+
+Install Algorithm::Diff
+
+	install Algorithm::Diff
+
+Install File::Sort
+
+	install File::Sort
+
+Install IPC::Run
+
+	install IPC::Run
+
+Install XML::Twig
+
+	install XML::Twig
+
+Install XML::XPath
+
+	install XML::XPath
+
+Install HTML::TreeBuilder
+
+	install HTML::TreeBuilder
+
+Install HTML::Entities::Numbered
+
+	install HTML::Entities::Numbered
+
+Install Alien::Tidyp
+
+	install Alien::Tidyp
+
+Install HTML::Tidy
+
+	install HTML::Tidy
+
+Install Test::Pod
+
+	install Test::Pod
+
+Install XML::Handler::YAWriter
+
+	install XML::Handler::YAWriter
+
+Install Data::Stag
+
+	install Data::Stag
+
+Install Algorithm::Munkres
+
+	install Algorithm::Munkres
+
+Install Array::Compare
+
+	install Array::Compare
+
+Install Convert::Binary::C
+
+	install Convert::Binary::C
+
+Install Error
+
+	install Error
+
+Install Graph
+
+	install Graph
+
+Install Math::Random 
+
+	install Math::Random 
+
+Install PostScript::TextBlock
+
+	install PostScript::TextBlock
+
+Install SOAP::Lite
+
+	install SOAP::Lite
+
+Install SVG
+
+	install SVG
+
+Install SVG::Graph
+
+	install SVG::Graph
+
+Install Set::Scalar
+
+	install Set::Scalar
+
+Install Sort::Naturally
+
+	install Sort::Naturally
+
+Install Spreadsheet::ParseExcel
+
+	install Spreadsheet::ParseExcel
+
+Install XML::DOM::XPath
+
+	install XML::DOM::XPath
+
+Install XML::SAX::Writer
+
+	install XML::SAX::Writer
+
+Install XML::Simple
+
+	install XML::Simple
+
+Install XML::Writer
+
+	install XML::Writer
+
+Install BioPerl
+
+	install Bio::Root::Version
+
+Install BioPerl::Run
+
+	To install this Perl module, I have had to install with force.
+	One way to do this is to exit the CPAN shell and execute the following
+	command on the Bash command-line:
+
+		sudo perl -MCPAN -e "CPAN::Shell->force(qw(install Bio::Tools::Run::Alignment::Sim4));"
+
+wget http://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/hg19.2bit
+wget http://hgdownload.cse.ucsc.edu/goldenPath/mm9/bigZips/mm9.2bit

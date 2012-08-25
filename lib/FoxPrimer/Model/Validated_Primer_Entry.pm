@@ -2,6 +2,7 @@ package FoxPrimer::Model::Validated_Primer_Entry;
 use Moose;
 use namespace::autoclean;
 use FoxPrimer::Schema;
+use Data::Dumper;
 
 extends 'Catalyst::Model';
 
@@ -315,6 +316,149 @@ sub _extract_relative_position {
 	} else {
 		return undef;
 	}
+}
+
+=head2 chip_primer_search
+
+This subroutine is called when RefSeq accessions are recognized by regular
+expressions during the primer database search. This subroutine is passed
+the Array Ref of accessions and returns any created or validated ChIP/Genomic
+primers that are in the database.
+
+=cut
+
+sub chip_primer_search {
+	my ($self, $c, $accessions_to_search) = @_;
+	# Create Hash Ref of primer database strings for the validated and created
+	# ChIP/Genomic DNA databases
+	my $databases = {
+		'created_primers'	=>	{
+			general		=>	'Created_ChIP_Primers::ChipPrimerPairsGeneral',
+			relative	=>	'Created_ChIP_Primers::ChipPrimerPairsRelativeLocation',
+		},
+#		'validated_primers'	=>	{
+#			general		=>	'',
+#			relative	=>	'',
+#		}
+	};
+	# Create a Hash Ref to hold Array Refs of primers found in the databases
+	my $found_primers = {};
+	# Create an Array Ref to hold any matched location ids
+	my $location_ids = [];
+	# Create an result set instance of the location database
+	my $chip_primers_locations_result_set = $c->model('Created_ChIP_Primers::RelativeLocation');
+	foreach my $accession_to_search (@$accessions_to_search) {
+		my $created_chip_primers_accession_result = $chip_primers_locations_result_set->search(
+			{
+				location	=>	{ 'like',  '%' . $accession_to_search . '%' },
+			}
+		);
+		# Extract the location ID from each match
+		while ( my $location_match = $created_chip_primers_accession_result->next ) {
+			push (@$location_ids, $location_match->id);
+		}
+	}
+	foreach my $primer_type ( keys %$databases ) {
+		# Create a Hash Ref to hold primer pair ids for the created ChIP primers
+		my $chip_primer_ids = {};
+		# Create a result set for the created ChIP primers relative location database
+		my $chip_primers_relative_locations_result_set = $c->model($databases->{$primer_type}{relative});
+		my $chip_primers_locations_results = $chip_primers_relative_locations_result_set->search(
+			{
+				location_id	=>	$location_ids,
+			}
+		);
+		while ( my $chip_primers_location_result = $chip_primers_locations_results->next ) {
+			unless( defined( $chip_primer_ids->{$chip_primers_location_result->pair_id} ) ) {
+				$chip_primer_ids->{$chip_primers_location_result->pair_id} = 1;
+			}
+		}
+		# For each of the found created ChIP/genomic primer IDs, retreive all of the relative locations
+		foreach my $primer_pair_id ( keys %$chip_primer_ids ) {
+			# Retrieve the primer information from the general created primers table
+			my $chip_primer_pairs_result_set = $c->model($databases->{$primer_type}{general});
+			my $chip_primer_pair_results = $chip_primer_pairs_result_set->search(
+				{
+						id	=>	$primer_pair_id,
+				}
+			);
+			while ( my $chip_primer_pair_result = $chip_primer_pair_results->next ) {
+				# Create an Array Ref to hold all of the relative location ids
+				my $relative_location_ids = [];
+				# Fetch each relative location id from the relational database
+				my $pair_id = $chip_primer_pair_result->id;
+				my $relative_location_search = $chip_primers_relative_locations_result_set->search(
+					{
+						pair_id	=>	$pair_id
+					}
+				);
+				while ( my $relative_location_search_result = $relative_location_search->next ) {
+					push(@$relative_location_ids, $relative_location_search_result->location_id);
+				}
+				# Fetch the relative locations string, parse them and place the strings in the original hash
+				my $raw_relative_locations_search_results = $chip_primers_locations_result_set->search(
+					{
+						id	=>	$relative_location_ids,
+					}
+				);
+				while ( my $raw_relative_locations_search_result = $raw_relative_locations_search_results->next ) {
+					push(@{$chip_primer_pair_result->{relative_locations}}, $raw_relative_locations_search_result->location);
+				}
+				push (@{$found_primers->{$primer_type}}, $chip_primer_pair_result);
+			}
+		}
+	}
+	return $found_primers;
+}
+
+=head2 cdna_primer_search
+
+This subroutine is called by the Controller when potential RefSeq mRNAs are
+found in the search string by regular expression searches. This subroutine
+searches both the validated and created cDNA primer databases to find primers
+that correspond to the accessions found in the search string. All found primers
+are returned to the controller to be returned to the user.
+
+=cut
+
+sub cdna_primer_search {
+	my ($self, $c, $accessions_to_search) = @_;
+	# Create a Hash Ref to hold the database strings for each type of primer
+	my $databases = {
+		created_primers		=>	'Created_Primers::Primer',
+#		validated_primers	=>	'',
+	};
+	# Create a Hash Ref to hold found primers
+	my $found_primers = {};
+	foreach my $primer_type (keys %$databases) {
+		my $mrna_result_set = $c->model($databases->{$primer_type});
+		my $mrna_accession_search_results = $mrna_result_set->search(
+			{
+				accession	=>	$accessions_to_search
+			}
+		);
+		while ( my $mrna_accession_search_result = $mrna_accession_search_results->next ) {
+			push(@{$found_primers->{$primer_type}}, $mrna_accession_search_result);
+		}
+		# Check to see if the user has entered an mRNA root by extracting the full accession
+		# from the gene2accession database and searching that as well
+		my $accession_root_search_results = $c->model('Valid_mRNA::Gene2accession')->search(
+			{
+				mrna_root	=>	$accessions_to_search
+			}
+		);
+		while ( my $accession_root_search_result = $accession_root_search_results->next ) {
+			my $root_search_results = $mrna_result_set->search(
+				{
+					accession	=>	$accession_root_search_result->mrna
+				}
+			);
+			while ( my $root_search_result = $root_search_results->next ) {
+				push(@{$found_primers->{$primer_type}}, $root_search_result);
+			}
+		}
+	}
+	return $found_primers;
 }
 
 __PACKAGE__->meta->make_immutable;
