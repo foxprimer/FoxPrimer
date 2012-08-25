@@ -159,7 +159,6 @@
 			<li><a href="[% c.uri_for('mrna_primer_design_shell') %]">Create cDNA Primers</a></li>
 			<li><a href="[% c.uri_for('chip_primer_design_shell') %]">Create ChIP Primers</a></li>
 			<li><a href="[% c.uri_for('validated_primers_entry_shell') %]">Enter Validated qPCR Primers</a></li>
-			<li><a href="[% c.uri_for('/') %]">Home Page</a></li>
 			</UL>
 		</p>
 		<P class="copyright">Copyright 2012 Jason R. Dobson</P>

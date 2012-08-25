@@ -63,6 +63,25 @@ my $mouse_index = [
 	"root/static/files/Mouse_Index/Mouse_100K_Downstream.bed",
 ];
 
+my $dmelanogaster_index = [                 
+	"root/static/files/DMelanogaster_Index/DMelanogaster_100K_Upstream.bed",
+	"root/static/files/DMelanogaster_Index/DMelanogaster_50K_Upstream.bed",
+	"root/static/files/DMelanogaster_Index/DMelanogaster_25K_Upstream.bed",
+	"root/static/files/DMelanogaster_Index/DMelanogaster_10K_Upstream.bed",
+	"root/static/files/DMelanogaster_Index/DMelanogaster_5K_Upstream.bed",
+	"root/static/files/DMelanogaster_Index/DMelanogaster_Promoters.bed",
+	"root/static/files/DMelanogaster_Index/DMelanogaster_5Prime_UTR.bed",
+	"root/static/files/DMelanogaster_Index/DMelanogaster_Exons.bed",
+	"root/static/files/DMelanogaster_Index/DMelanogaster_Introns.bed",
+	"root/static/files/DMelanogaster_Index/DMelanogaster_3Prime_UTR.bed",
+	"root/static/files/DMelanogaster_Index/DMelanogaster_2.5K_Downstream.bed",
+	"root/static/files/DMelanogaster_Index/DMelanogaster_5K_Downstream.bed",
+	"root/static/files/DMelanogaster_Index/DMelanogaster_10K_Downstream.bed",
+	"root/static/files/DMelanogaster_Index/DMelanogaster_25K_Downstream.bed",
+	"root/static/files/DMelanogaster_Index/DMelanogaster_50K_Downstream.bed",
+	"root/static/files/DMelanogaster_Index/DMelanogaster_100K_Downstream.bed",
+];
+
 =head2 get_index
 
 This subroutine is called by the Model FoxPrimer::Peaks to genes and
@@ -76,6 +95,8 @@ sub get_index {
 		return $self->_can_open_files($human_index);
 	} elsif ( $genome eq 'mm9' ) {
 		return $self->_can_open_files($mouse_index);
+	} elsif ( $genome eq 'dm3' ) {
+		return $self->_can_open_files($dmelanogaster_index);
 	} else {
 		die "\n\nThere was a problem in the get_index subroutine returning the proper index of genomic locations.\n\n";
 	}

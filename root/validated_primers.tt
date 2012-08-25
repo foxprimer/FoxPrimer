@@ -53,7 +53,7 @@
 		<b>Right Primer ChIP Location</b>
 		<p style="margin-left: 1.5em">If the primer pair is for ChIP qPCR, enter the location of the primer relative to the transcriptional start site. For example, if the primer is 250bp upstream of the transcriptional start site, enter "-250" in this field.</p>
 		<b>Genome</b>
-		<p style="margin-left: 1.5em">If the primer pair is for ChIP qPCR, enter the genome to which the locations are determined. Valid genomes as of now are: hg19 or mm9</p>
+		<p style="margin-left: 1.5em">If the primer pair is for ChIP qPCR, enter the genome to which the locations are determined. Valid genomes as of now are: hg19, mm9 or dm3</p>
 	</p>
 </form>
 </div>

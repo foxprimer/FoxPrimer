@@ -47,7 +47,9 @@ has gene_body_file	=>	(
 			return 'root/static/files/Mouse_Gene_Bodies.bed';
 		} elsif ( $genome eq 'hg19' ) {
 			return 'root/static/files/Human_Gene_Bodies.bed';
-		};
+		} elsif ( $genome eq 'dm3' ) {
+			return 'root/static/files/DMelanogaster_Gene_Bodies.bed';
+		}
 	},
 	required		=>	1,
 	lazy			=>	1,
@@ -83,6 +85,8 @@ has chromosome_sizes_file	=>	(
 			return 'root/static/files/mm9.chrom.sizes';
 		} elsif ( $genome eq 'hg19' ) {
 			return 'root/static/files/hg19.chrom.sizes';
+		} elsif ( $genome eq 'dm3' ) {
+			return	'root/static/files/dm3.chrom.sizes';
 		}
 	},
 	required		=>	1,
@@ -218,7 +222,7 @@ sub valid_file {
 		# If the primers are defined as ChIP primers, check to make sure the reqiured information has been entered
 		} elsif ( $primer_type eq 'chip' ) {
 			# Check to make sure the user has entered a valid genome
-			unless ( $genome eq 'mm9' || $genome eq 'hg19' ) {
+			unless ( $genome eq 'mm9' || $genome eq 'hg19' || $genome eq 'dm3') {
 				push (@$file_errors, "On line $line_number, the genome: $genome is not valid. It must be either mm9 or hg19");
 				$valid_primer_line = 0;
 			}

@@ -50,8 +50,9 @@ my $locations = [
 ];
 # Declare the locations of the promoter files for each species
 my $promoter_files = {
-	Human		=>	'root/static/files/Human_Index/Human_Promoters.bed',
-	Mouse		=>	'root/static/files/Mouse_Index/Mouse_Promoters.bed',
+	Human			=>	'root/static/files/Human_Index/Human_Promoters.bed',
+	Mouse			=>	'root/static/files/Mouse_Index/Mouse_Promoters.bed',
+	DMelanogaster	=>	'root/static/files/DMelanogaster_Index/DMelanogaster_Promoters.bed',
 };
 # Create a Array Ref to hold the populate calls
 my $populate_array = [];
@@ -61,7 +62,7 @@ my $unique_names = {};
 # In each promoter file, extract the RNA accessions and append the acccession
 # and species to each of the locations.
 # Finally, each appended string will be inserted into the database.
-foreach my $species ( "Human", "Mouse" ) {
+foreach my $species ( "Human", "Mouse", "DMelanogaster" ) {
 	my $promoter_fh = $promoter_files->{$species};
 	open my $promoter_file, "<", $promoter_fh or die "Could not read from $promoter_fh $!\n";
 	while (<$promoter_file>) {

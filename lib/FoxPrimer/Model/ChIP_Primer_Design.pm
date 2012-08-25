@@ -338,7 +338,13 @@ sub define_relative_position {
 				# Pre-declare an accession and relative region string to hold the parsed strings
 				my $accession = '';
 				my $relative_region = '';
-				if ( $raw_relative_location =~ /^(\w\w_\d+)-Human_(.+)$|^(\w\w_\d+)-Mouse_(.+)$/ ) {
+				if ( $raw_relative_location =~ /^(\w\w_\d+)-Human_(.+)$/ ) {					
+					$accession = $1;
+					$relative_region = $2;
+				} elsif ( $raw_relative_location =~ /^(\w\w_\d+)-Mouse_(.+)$/ ) {
+					$accession = $1;
+					$relative_region = $2;
+				} elsif ( $raw_relative_location =~ /^(\w\w_\d+)-DMelanogaster_(.+)$/ ) {
 					$accession = $1;
 					$relative_region = $2;
 				}

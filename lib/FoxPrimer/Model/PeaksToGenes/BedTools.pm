@@ -46,7 +46,7 @@ sub annotate_peaks {
 					$index_chr, $index_start, $index_stop, $index_name, $index_score,
 					$index_strand) = split(/\t/, $intersected_peak);
 				my $index_gene;
-				if ($index_name =~ /^(\w\w_\d+?)_/) {
+				if ($index_name =~ /^(\w\w_\d+)/) {
 					$index_gene = $1;
 				}
 				if ( $index_gene ) {
