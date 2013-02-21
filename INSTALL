@@ -34,6 +34,7 @@ Test the make installation:
 Install the gcc compiler to help with C code compilation for Perl modules:
 
 	sudo apt-get install gcc
+	
 
 Test the gcc installation:
 
@@ -42,6 +43,15 @@ Test the gcc installation:
 
 	- If these two commands return the path and version information
 	  respectively, then installation went correctly.
+
+Install the g++ compiler to help with C code compilation for Perl modules:
+
+	sudo apt-get install g++
+	
+Test the g++ installation
+
+	which g++
+	g++ -v
 
 Install the file utility Unzip:
 
@@ -277,6 +287,18 @@ Install Catalyst::View::TT
 
 	install Catalyst::View::TT
 
+Install HTTP::HeaderParser::XS
+
+	install HTTP::HeaderParser::XS
+	
+Install Catalyst::Engine::CGI
+
+	install Catalyst::Engine::CGI
+	
+Install Catalyst::Engine::HTTP::Prefork
+
+	install Catalyst::Engine::HTTP::Prefork
+
 Install Catalyst::Model::DBIC::Schema
 
 	install Catalyst::Model::DBIC::Schema
@@ -415,3 +437,4 @@ Install BioPerl::Run
 
 wget http://hgdownload.cse.ucsc.edu/goldenPath/hg19/bigZips/hg19.2bit
 wget http://hgdownload.cse.ucsc.edu/goldenPath/mm9/bigZips/mm9.2bit
+wget http://hgdownload.cse.ucsc.edu/gbdb/dm3/dm3.2bit
