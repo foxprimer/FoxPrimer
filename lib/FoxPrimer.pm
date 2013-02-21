@@ -57,7 +57,9 @@ FoxPrimer - Catalyst based application
 
 =head1 DESCRIPTION
 
-[enter your description here]
+This is the Catalyst Module for the FoxPrimer Primer Design suite. This
+program is designed to create a web-interface for users to create and store
+real-time qPCR primer pairs.
 
 =head1 SEE ALSO
 
@@ -65,7 +67,7 @@ L<FoxPrimer::Controller::Root>, L<Catalyst>
 
 =head1 AUTHOR
 
-Jason R Dobson,,,
+Jason R Dobson foxprimer@gmail.com
 
 =head1 LICENSE
 
