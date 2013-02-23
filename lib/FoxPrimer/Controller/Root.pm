@@ -860,7 +860,7 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 						"There were no gene " .
 						"bodies within 100Kb " .
 						"of this primer pair."
-					):
+					);
 				}
 			}
 

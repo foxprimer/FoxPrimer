@@ -2,6 +2,7 @@ package FoxPrimer::Model::mRNA_Primer_Design;
 use Moose;
 use namespace::autoclean;
 use Data::Dumper;
+use File::Which;
 use FoxPrimer::Model::ChIP_Primer_Design;
 use FoxPrimer::Schema;
 use FoxPrimer::Model::mRNA_Primer_Design::Genbank_Retriever;
@@ -34,7 +35,7 @@ it under the same terms as Perl itself.
 
 =head2 Moose declarations
 
-This sections contains declarations for constructor methods for 
+This sections contains declarations for constructor methods for
 object-oriented code.
 
 =cut
@@ -65,64 +66,89 @@ has species				=>	(
 );
 
 has mispriming_file		=>	(
-	is				=>	'rw',
-	isa				=>	'Str',
-	default			=>	sub {
+	is		=>	'rw',
+	isa		=>	'Str',
+
+	# Define a subroutine to be executed when $self->mispriming_file is
+	# called, so that the proper mispriming file is used for primer3.
+	default		=>	sub {
 		my $self = shift;
+
+		# Store the species string in a scalar
 		my $species = $self->species;
-		# Pre-declare a string to hold the file location based on the species
+
+		# Pre-declare a string to hold the file location based on
+		# the species.
 		my $mispriming_fh = '';
 		if ( $species eq 'Human' ) {
-			$mispriming_fh = 'root/static/files/human_and_simple';
+			$mispriming_fh = 
+				'root/static/files/human_and_simple';
 		} else {
-			$mispriming_fh = 'root/static/files/rodent_and_simple';
+			$mispriming_fh = 
+				'root/static/files/rodent_and_simple';
 		}
 		return $mispriming_fh;
 	},
-	required		=>	1,
-	lazy			=>	1,
+	required	=>	1,
+	lazy		=>	1,
 );
 
 has primer3_executable	=>	(
-	is				=>	'rw',
-	isa				=>	'Str',
-	default			=>	sub {
+	is		=>	'rw',
+	isa		=>	'Str',
+
+	# Define a subroutine to find the path to the primer3 executable
+	# primer3_core.
+	default		=>	sub {
 		my $self = shift;
-		my $primer3_path = `which primer3_core`;
+		my $primer3_path = which('primer3_core');
 		chomp $primer3_path;
 		return $primer3_path;
 	},
-	required		=>	1,
-	lazy			=>	1,
+	required	=>	1,
+	lazy		=>	1,
 );
 
 =head2 create_primers
 
-This subroutine is called by the Controller to control the processing
-of user-entered data into the creation of qPCR primers.
+This subroutine is called by the Controller to control the processing of
+user-entered data into the creation of qPCR primers.
 
 =cut
 
 sub create_primers {
 	my $self = shift;
-	# Pre-declare structure to be an Array Ref
+
+	# Pre-declare structure to be an Array Ref, which is where all of
+	# the primers and their cognate information will be stored.
 	my $structure = [];
-	# Fetch the sequence objects and store them in an Array Ref of Hash Refs called structure
-	$structure = FoxPrimer::Model::mRNA_Primer_Design::Genbank_Retriever->get_objects($self->valid_accessions);		
-	# Write the sequences from sequences objects to file and store the temporary filehandles
-	# in the structure
-	$structure = FoxPrimer::Model::mRNA_Primer_Design::Create_Fasta_Files->write_to_fasta($structure);
-	# Align the mRNA sequence to the DNA sequence using Sim4.
-	# Then, calculate the splice-junction positions and store them in the structure.
-	$structure = FoxPrimer::Model::mRNA_Primer_Design::Sim4_Alignment->sim4_alignment($structure);
-	# Create a FoxPrimer::Model::mRNA_Primer_Design::Primer3 object and create primers
+
+	# Fetch the sequence objects and store them in an Array Ref of Hash
+	# Refs called structure.
+	$structure =
+	FoxPrimer::Model::mRNA_Primer_Design::Genbank_Retriever->get_objects($self->valid_accessions);
+
+	# Write the sequences from sequences objects to file and store the
+	# temporary filehandles in the structure.
+	$structure =
+	FoxPrimer::Model::mRNA_Primer_Design::Create_Fasta_Files->write_to_fasta($structure);
+
+	# Align the mRNA sequence to the DNA sequence using Sim4. Then,
+	# calculate the splice-junction positions and store them in the
+	# structure.
+	$structure =
+	FoxPrimer::Model::mRNA_Primer_Design::Sim4_Alignment->sim4_alignment($structure);
+	
+	# Create a FoxPrimer::Model::mRNA_Primer_Design::Primer3 object and
+	# create primers.
 	my $primer3 = FoxPrimer::Model::mRNA_Primer_Design::Primer3->new(
-		mispriming_file		=>	$self->mispriming_file,
-		product_size		=>	$self->product_size,
-		primer3_path		=>	$self->primer3_executable,
+		mispriming_file	=>	$self->mispriming_file,
+		product_size	=>	$self->product_size,
+		primer3_path	=>	$self->primer3_executable,
 	);
-	# Pre-declare an Array Ref to hold error messages in case primers were not able to
-	# be designed for any mRNAs
+
+	# Pre-declare an Array Ref to hold error messages in case primers
+	# were not able to be designed for any mRNAs.
 	my $error_messages = [];
 	($error_messages, $structure) = $primer3->create_primers($structure);
 	# Remove the temporary fasta files
