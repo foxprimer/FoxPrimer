@@ -180,15 +180,19 @@ have been filled by the user, and that each field has valid information.
 
 sub validate_form {
 	my ($self, $structure) = @_;
-	# Pre-declare an Array Ref to hold error messages to be returned to the user.
+
+	# Pre-declare an Array Ref to hold error messages to be returned to the
+	# user.
 	my $form_errors = [];
-	# For each field entered in the form, remove all of the whitespace
+
+	# For each field entered in the form, remove all of the whitespace.
 	foreach my $field ( keys %$structure ) {
 		$structure->{$field} =~ s/\s//g;
 	}
-	# Check that the user has entered the appropriate information in the product size
-	# field. To do this, use the validate_product_size subroutine from the Model 
-	# ChIP_Primer_Design
+
+	# Check that the user has entered the appropriate information in the
+	# product size field. To do this, use the validate_product_size
+	# subroutine from the Model ChIP_Primer_Design.
 	my $product_size_check = FoxPrimer::Model::ChIP_Primer_Design->new();
 	my $product_size_errors = $product_size_check->validate_product_size($structure);
 	push(@$form_errors, @$product_size_errors) if $product_size_errors;

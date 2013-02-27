@@ -223,146 +223,178 @@ sub mrna_primer_design :Chained('/') :PathPart('mrna_primer_design') :Args(0) {
 	# Default paramets passed to a zero-argument part path
 	my ($self, $c) = @_;
 
-	# Use the validate_form subroutine in the Model mRNA_Primer_Design
-	# to validate that the form has been filled out in it's entirety
-	my $validate_form = $c->model('mRNA_Primer_Design')->new();
-	my ($form_errors, $structure) = 
-		$validate_form->validate_form($c->request->parameters);
+	# Create an instance of FoxPrimer::Model::PrimerDesign 
+	my $cdna_primer_design = $c->model('PrimerDesign')->new(
+		species				=>	$c->request->parameters->{species},
+		product_size_string	=>	$c->request->parameters->{product_size},
+		number_per_type		=>	$c->request->parameters->{number_per_type},
+		intron_size			=>	$c->request->parameters->{intron_size},
+		accessions_string	=>	$c->request->parameters->{genes},
+	);
 
-	# If there were any errors in the form, return the error messages
-	# to the user.
+	my ($form_errors, $accession_errors, $accessions_to_make_primers) =
+	$cdna_primer_design->validate_mrna_form;
+
+	# If there are any form errors, return the errors to the user and end.
 	if ( @$form_errors ) {
 		$c->stash(
 			error_msg	=>	$form_errors,
 			template	=>	'mrna_primer_design.tt',
 		);
 	} else {
-		# If the rest of the form has been filled out correctly,
-		# pass the accessions string to the Catalyst Model
-		# mRNA_Primer_Design to use the
-		# extract_and_validate_accessions subroutine to extract
-		# accessions and validate whether the NCBI:Gene2Accession
-		# database contains the requisite information to make
-		# primers for that accession.
-		my $mrna_primer_design =
-			$c->model('mRNA_Primer_Design')->new(
-				number_per_type	=>	
-					$structure->{number_per_type},
 
-				intron_size	=>	
-					$structure->{intron_size},
-
-				product_size	=>
-					$structure->{product_size},
-			
-				species		=>
-					$structure->{species},
-		);
-		my ($invalid_accessions, $valid_accessions_found) =
-		$mrna_primer_design->extract_and_validate_accessions($structure->{genes});
-
-		# If there are no valid accessions found return the error
-		# messages to the user.
-		if ( $valid_accessions_found == 0) {
+		# If there were no valid RefSeq mRNA accessions entered, return an
+		# error message to the user.
+		if ( ! @$accessions_to_make_primers ) {
 			$c->stash(
-				error_msg	=>
-					$invalid_accessions,
-
-				template	=>
-					'mrna_primer_design.tt',
+				error_msg	=>	$accession_errors,
+				template	=>	'mrna_primer_design.tt'
 			);
 		} else {
-			# Use the mRNA_Primer_Design object to create
-			# primers with the valid accessions that were
-			# found.
-
-			# Pre-declare an Array Ref to hold the error
-			# messages from creating primers
-			my $design_error_messages = [];
-
-			# Pre-declare an Array Ref to hold the primer
-			# insert statement.
-			my $primer_insert = [];
-
-			# Run the
-			# FoxPrimer::Model::mRNA_Primer_Design::create_primers
-			# subroutine to create primers and return to the
-			# Controller error messages (if any) and a
-			# structure of primers and their cognate
-			# information to be stored in the FoxPrimer
-			# database
-			($design_error_messages, $primer_insert) = 
-				$mrna_primer_design->create_primers;
-
-			# If there are primers to be inserted into the
-			# database, insert them into the database and
-			# return them to the user.
-			if ( @$primer_insert ) {
-				# Create an instance of the created mRNA
-				# primers resultset
-				my $created_primers_result_set =
-					$c->model('Created_Primers::Primer');
-
-				# Insert the primers into the created
-				# primers database.
-				$created_primers_result_set->populate(
-					$primer_insert
-				);
-
-				# If there are any error messages, return
-				# these to the user through the error_msg
-				# field in the mrna_primer_design.tt
-				# template, otherwise only return the
-				# designed primers.
-				if ( @$invalid_accessions ||
-					@$design_error_messages) {
-					push (@$invalid_accessions,
-						@$design_error_messages
-					);
-					$c->stash(
-						status_msg	=>	
-						"Primers have been designed for some accessions entered.",
-						
-						error_msg	=>	
-							$invalid_accessions,
-
-						template	=>
-							'mrna_primer_design.tt',
-
-						primer_results	=>
-							$primer_insert,
-					);
-				} else {
-					$c->stash(
-						status_msg	=>	
-						"Primers have been designed for all accessions entered.",
-
-						template	=>
-							'mrna_primer_design.tt',
-
-						primer_results	=>
-							$primer_insert,
-					);
-				}
-			} else {
-				# If there were errors in designing
-				# primers, add these to the invalid
-				# accessions error string.
-				if ( @$design_error_messages ) {
-					push (@$invalid_accessions, 
-						@$design_error_messages
-					);
-				}
-				$c->stash(
-					error_msg	=>
-						$invalid_accessions,
-
-					template	=>	
-						'mrna_primer_design.tt',
-				);
-			}
+			print Dumper $accessions_to_make_primers;
 		}
 	}
+
+#	# Use the validate_form subroutine in the Model mRNA_Primer_Design
+#	# to validate that the form has been filled out in it's entirety
+#	my $validate_form = $c->model('mRNA_Primer_Design')->new();
+#	my ($form_errors, $structure) = 
+#		$validate_form->validate_form($c->request->parameters);
+#
+#	# If there were any errors in the form, return the error messages
+#	# to the user.
+#	if ( @$form_errors ) {
+#		$c->stash(
+#			error_msg	=>	$form_errors,
+#			template	=>	'mrna_primer_design.tt',
+#		);
+#	} else {
+#		# If the rest of the form has been filled out correctly,
+#		# pass the accessions string to the Catalyst Model
+#		# mRNA_Primer_Design to use the
+#		# extract_and_validate_accessions subroutine to extract
+#		# accessions and validate whether the NCBI:Gene2Accession
+#		# database contains the requisite information to make
+#		# primers for that accession.
+#		my $mrna_primer_design =
+#			$c->model('mRNA_Primer_Design')->new(
+#				number_per_type	=>	
+#					$structure->{number_per_type},
+#
+#				intron_size	=>	
+#					$structure->{intron_size},
+#
+#				product_size	=>
+#					$structure->{product_size},
+#			
+#				species		=>
+#					$structure->{species},
+#		);
+#		my ($invalid_accessions, $valid_accessions_found) =
+#		$mrna_primer_design->extract_and_validate_accessions($structure->{genes});
+#
+#		# If there are no valid accessions found return the error
+#		# messages to the user.
+#		if ( $valid_accessions_found == 0) {
+#			$c->stash(
+#				error_msg	=>
+#					$invalid_accessions,
+#
+#				template	=>
+#					'mrna_primer_design.tt',
+#			);
+#		} else {
+#			# Use the mRNA_Primer_Design object to create
+#			# primers with the valid accessions that were
+#			# found.
+#
+#			# Pre-declare an Array Ref to hold the error
+#			# messages from creating primers
+#			my $design_error_messages = [];
+#
+#			# Pre-declare an Array Ref to hold the primer
+#			# insert statement.
+#			my $primer_insert = [];
+#
+#			# Run the
+#			# FoxPrimer::Model::mRNA_Primer_Design::create_primers
+#			# subroutine to create primers and return to the
+#			# Controller error messages (if any) and a
+#			# structure of primers and their cognate
+#			# information to be stored in the FoxPrimer
+#			# database
+#			($design_error_messages, $primer_insert) = 
+#				$mrna_primer_design->create_primers;
+#
+#			# If there are primers to be inserted into the
+#			# database, insert them into the database and
+#			# return them to the user.
+#			if ( @$primer_insert ) {
+#				# Create an instance of the created mRNA
+#				# primers resultset
+#				my $created_primers_result_set =
+#					$c->model('Created_Primers::Primer');
+#
+#				# Insert the primers into the created
+#				# primers database.
+#				$created_primers_result_set->populate(
+#					$primer_insert
+#				);
+#
+#				# If there are any error messages, return
+#				# these to the user through the error_msg
+#				# field in the mrna_primer_design.tt
+#				# template, otherwise only return the
+#				# designed primers.
+#				if ( @$invalid_accessions ||
+#					@$design_error_messages) {
+#					push (@$invalid_accessions,
+#						@$design_error_messages
+#					);
+#					$c->stash(
+#						status_msg	=>	
+#						"Primers have been designed for some accessions entered.",
+#						
+#						error_msg	=>	
+#							$invalid_accessions,
+#
+#						template	=>
+#							'mrna_primer_design.tt',
+#
+#						primer_results	=>
+#							$primer_insert,
+#					);
+#				} else {
+#					$c->stash(
+#						status_msg	=>	
+#						"Primers have been designed for all accessions entered.",
+#
+#						template	=>
+#							'mrna_primer_design.tt',
+#
+#						primer_results	=>
+#							$primer_insert,
+#					);
+#				}
+#			} else {
+#				# If there were errors in designing
+#				# primers, add these to the invalid
+#				# accessions error string.
+#				if ( @$design_error_messages ) {
+#					push (@$invalid_accessions, 
+#						@$design_error_messages
+#					);
+#				}
+#				$c->stash(
+#					error_msg	=>
+#						$invalid_accessions,
+#
+#					template	=>	
+#						'mrna_primer_design.tt',
+#				);
+#			}
+#		}
+#	}
 }
 
 =head2 chip_primer_design_shell
