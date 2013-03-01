@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS primers;
 --
 -- Create a database for the storage and display of qPCR primers
 --

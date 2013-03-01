@@ -61,6 +61,13 @@ can_ok($cdna_primer_design, 'create_primers');
 # Run the 'create_primers' subroutine, which should return a structure of
 # primer information to be entered into the FoxPrimer database and returned
 # to the user.
-my $designed_cdna_primers = $cdna_primer_design->create_primers;
+my ($designed_cdna_primers, $primer3_error_messages) = 
+$cdna_primer_design->create_primers;
+
+isa_ok($designed_cdna_primers, 'ARRAY');
+isa_ok($designed_cdna_primers->[0], 'HASH');
+cmp_ok(@$designed_cdna_primers, '<=', 40,
+    'The correct number of cDNA primers have been designed'
+);
 
 done_testing();

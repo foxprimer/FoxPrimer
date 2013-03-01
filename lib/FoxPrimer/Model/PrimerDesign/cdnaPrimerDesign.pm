@@ -7,6 +7,7 @@ use FoxPrimer::Model::PrimerDesign::cdnaPrimerDesign::GenBankRetriever;
 use FoxPrimer::Model::PrimerDesign::cdnaPrimerDesign::GenBankToFasta;
 use FoxPrimer::Model::PrimerDesign::cdnaPrimerDesign::Sim4Alignment;
 use FoxPrimer::Model::PrimerDesign::cdnaPrimerDesign::Primer3;
+use FoxPrimer::Model::PrimerDesign::cdnaPrimerDesign::MapPrimers;
 
 use namespace::autoclean;
 
@@ -178,7 +179,7 @@ has primers_to_make	=>	(
 This subroutine is the main subroutine for the Model. It creates the
 objects of each subtype and relays the relevant information back and forth
 between them. This subroutine returns the primers in an Array Ref of Hash
-Refs.
+Refs as well as any error messages returned by Primer3.
 
 =cut
 
@@ -191,6 +192,10 @@ sub create_primers {
 
 	# Pre-declare an Array Ref to hold the Hash Refs of primer information.
 	my $designed_primers = [];
+
+    # Pre-declare an Array Ref to hold any error messages returned by
+    # Primer3.
+    my $error_messages = [];
 
 	# Iterate through the sequence_objects_and_descriptions, writing
 	# sequence objects to file, aligning cDNA to genomic DNA, designing
@@ -235,6 +240,8 @@ sub create_primers {
 		my ($created_primers, $primer3_errors, $number_of_primers_created)
 		= $primer3->create_primers;
 
+        push(@$error_messages, $primer3_errors) if $primer3_errors;
+
 		# Remove the FASTA files now that the alignment has completed and
 		# primers have been designed.
 		unlink($cdna_fh);
@@ -248,7 +255,26 @@ sub create_primers {
 		# run the 'map' subroutine, which will determine the top N of each
 		# primer type based on the number (N) specified by the user and
 		# ranked by the primer pair penalty defined by Primer3.
+        my $map_primers =
+        FoxPrimer::Model::PrimerDesign::cdnaPrimerDesign::MapPrimers->new(
+            number_per_type         =>  $self->number_per_type,
+            number_of_primers       =>  $number_of_primers_created,
+            intron_size             =>  $self->intron_size,
+            number_of_alignments    =>  
+                $coordinates->{'Number of Alignments'},
+            designed_primers        =>  $created_primers,
+            coordinates             =>  $coordinates,
+            mrna                    =>  $sequence_object_set->{mrna},
+            description             =>
+                $sequence_object_set->{description},
+        );
+
+        # Add the mapped primers (as an insert statement) to the
+        # designed_primers Array Ref
+        push(@$designed_primers, @{$map_primers->map});
 	}
+
+    return ($designed_primers, $error_messages);
 }
 
 =head2 unique_genbank

@@ -3,8 +3,6 @@ use warnings;
 use Test::More;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
-use Data::Dumper;
-
 
 BEGIN { use_ok
 	'FoxPrimer::Model::PrimerDesign::cdnaPrimerDesign::Sim4Alignment' }

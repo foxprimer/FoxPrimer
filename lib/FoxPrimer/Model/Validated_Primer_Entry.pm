@@ -429,7 +429,7 @@ sub cdna_primer_search {
 	my ($self, $c, $accessions_to_search) = @_;
 	# Create a Hash Ref to hold the database strings for each type of primer
 	my $databases = {
-		created_primers		=>	'Created_Primers::Primer',
+		created_primers		=>	'CreatedPrimers::Primer',
 #		validated_primers	=>	'',
 	};
 	# Create a Hash Ref to hold found primers

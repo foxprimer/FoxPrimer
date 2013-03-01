@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS gene2accession;
 CREATE TABLE gene2accession (
 	mrna TEXT,
 	mrna_root TEXT,
