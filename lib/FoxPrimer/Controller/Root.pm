@@ -108,6 +108,9 @@ sub search_database :Local {
 				},
 			}
 		);
+        # Placeholder for validated cDNA search
+        #
+        # END
 
 		# Iterate through the created cDNA search results adding
 		# each row to the Array Ref
