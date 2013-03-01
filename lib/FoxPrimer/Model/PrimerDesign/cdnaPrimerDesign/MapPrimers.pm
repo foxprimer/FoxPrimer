@@ -181,7 +181,7 @@ sub map {
 				unless ( ! $primer_type || 
 					$primer_type eq 'Undefined' ) {
 
-					if ( $primer_type eq 'Intra-Exon Primer' &&
+					if ( $primer_type eq 'Intra-Exon Primers' &&
 						$intra_exon_primer_number < $self->number_per_type)
 					{
 						push(@$mapped_primers,

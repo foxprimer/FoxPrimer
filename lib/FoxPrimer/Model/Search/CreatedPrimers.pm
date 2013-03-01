@@ -56,13 +56,26 @@ has search_string   =>  (
 
 This subroutine creates an instance of
 FoxPrimer::Model::Search::CreatedPrimers::cDNA and runs the
-'find_created_cdna_primers' subroutine to return an Array Ref of primer
-pair information Hash Refs.
+'search_cdna_database' subroutine to return an Array Ref of primer pair
+information Hash Refs.
 
 =cut
 
 sub search_created_cdna_primers {
     my $self = shift;
+
+	# Create an instance of FoxPrimer::Model::Search::CreatedPrimers::cDNA
+	# and run the 'search_cdna_database' subroutine to return an Array Ref
+	# of primers matching the user's search string.
+	my $cdna_search = FoxPrimer::Model::Search::CreatedPrimers::cDNA->new(
+		search_string			=>	$self->search_string,
+		accessions_to_search	=>	$self->accessions_to_search,
+	);
+
+	my $created_cdna_primers = $cdna_search->search_cdna_database;
+	print Dumper $created_cdna_primers;
+
+	return $created_cdna_primers;
 }
 
 __PACKAGE__->meta->make_immutable;

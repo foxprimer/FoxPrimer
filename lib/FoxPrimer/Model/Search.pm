@@ -83,6 +83,29 @@ sub search_databases {
 
     # Create an instance of FoxPrimer::Model::Search::CreatedPrimers to
     # search the FoxPrimer databases for created cDNA and ChIP primers.
+	my $created_search = FoxPrimer::Model::Search::CreatedPrimers->new(
+		search_string			=>	$self->search_string,
+		accessions_to_search	=>	$full_accessions
+	);
+
+	# Run the 'search_created_cdna_primers' subroutine to returned an Array
+	# Ref of unique cDNA primer pairs in the created primers database.
+	my $created_cdna_primers =
+	$created_search->search_created_cdna_primers;
+
+	# The following Array Refs are placeholders for when full methods are
+	# re-written.
+	my $created_chip_primers = [];
+	my $validated_cdna_primers = [];
+	my $validated_chip_primers = [];
+
+	# Return a Hash Ref of search results.
+	return {
+		created_cdna_primers	=>	$created_cdna_primers,
+		created_chip_primers	=>	$created_chip_primers,
+		validated_cdna_primers	=>	$validated_cdna_primers,
+		validated_chip_primers	=>	$validated_chip_primers
+	};
 }
 
 =head2 find_full_accessions
