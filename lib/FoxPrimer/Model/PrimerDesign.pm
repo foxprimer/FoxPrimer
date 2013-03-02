@@ -130,6 +130,18 @@ has _gene2accession_schema	=>	(
 	reader		=>	'gene2accession_schema',
 );
 
+=head2 chip_primers_form
+
+This Moose object contains the path to the user-uploaded file containing
+the information for ChIP primer design.
+
+=cut
+
+has	chip_primers_form	=>	(
+	is			=>	'ro',
+	isa			=>	'Str'
+);
+
 =head2 validate_mrna_form
 
 This subroutine is called by the FoxPrimer Controller module to ensure that

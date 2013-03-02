@@ -1,6 +1,7 @@
 package FoxPrimer::Controller::Root;
 use Moose;
 use namespace::autoclean;
+use FindBin;
 use Data::Dumper;
 
 BEGIN { extends 'Catalyst::Controller' }
@@ -360,7 +361,7 @@ sub chip_primer_design_shell :Local {
 			'Please fill out the form below to begin making primers',
 
 		motifs		=>
-			$c->model('Available_Motifs')->available_motifs,
+			$c->model('AvailableMotifs')->available_motifs,
 	);
 }
 
@@ -387,7 +388,7 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 			my $peaks_file = $upload->filename;
 
 			# Create a string for the path of the peaks file
-			my $peaks_fh = "tmp/upload/$peaks_file";
+			my $peaks_fh = "$FindBin::Bin/../tmp/upload/$peaks_file";
 
 			# Ensure that the file is copied to the temporary
 			# location
@@ -401,7 +402,7 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 					["Failed to copy '$peaks_file' to  '$peaks_fh': $!"],
 					
 					motifs		=>
-						$c->model('Available_Motifs')->available_motifs,
+						$c->model('AvailableMotifs')->available_motifs,
 				);
 			}
 
