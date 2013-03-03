@@ -242,13 +242,12 @@ sub install_chip_genomes {
 
 			# Create a string for wget execution
 			my $wget_execution = $wget_path . " -O $twobit_fh " .
-			"http://hgdownload.cse.ucsc.edu/goldenPath/" .
-			$genome_to_install . "/bigZips/" . $genome_to_install .
-			".2bit";
+			"http://hgdownload.cse.ucsc.edu/gbdb/" . 
+			$genome_to_install . '/' . $genome_to_install . ".2bit";
 
 			# Execute the wget string
 			print "\nNow fetching the 2bit file for $genome_to_install\n";
-#			`$wget_execution`;
+			`$wget_execution`;
 
 			# Ensure that the 2bit file has been downloaded
 			unless ( -r $twobit_fh ) {

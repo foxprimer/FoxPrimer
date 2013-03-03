@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS chip_primer_pairs_general;
+
 CREATE TABLE chip_primer_pairs_general (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	left_primer_sequence TEXT,
@@ -13,10 +15,16 @@ CREATE TABLE chip_primer_pairs_general (
 	primer_pair_penalty NUMBER,
 	UNIQUE(left_primer_sequence, right_primer_sequence) ON CONFLICT REPLACE
 );
+
+DROP TABLE IF EXISTS relative_locations;
+
 CREATE TABLE relative_locations (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	location TEXT UNIQUE
 );
+
+DROP TABLE IF EXISTS chip_primer_pairs_relative_locations;
+
 CREATE TABLE chip_primer_pairs_relative_locations (
 	pair_id INTEGER REFERENCES chip_primer_pairs_general(id),
 	location_id INTEGER REFERENCES relative_locations(id),

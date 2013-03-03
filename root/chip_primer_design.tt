@@ -13,7 +13,18 @@
 		At this point, ChIP primers can only be designed for <a href=http://hgdownload.cse.ucsc.edu/downloads.html#fruitfly#mouse>dm3</a>, <a href=http://hgdownload.cse.ucsc.edu/downloads.html#mouse>mm9</a> and <a href=http://hgdownload.cse.ucsc.edu/downloads.html#human>hg19</a>. Please check back for updates.
 	</p>
 	<p>
-		If a set of peak summits is uploaded, primers will be designed around these coordinates.<br/>If a set of larger intervals are uploaded, the user can do one of two things: <b>1)</b> By default the best 5 primers in the interval will be returned to the user. <b>2)</b> The user can pick a position weight matrix from the dropdown list, and 5 primers will be designed around each match. 
+		If a set of peak summits is uploaded, primers will be
+		designed around these coordinates.
+		<br/>
+		If a set of larger intervals are uploaded, the user can do
+		one of two things:
+		<br />
+		<b>1)</b> By default the best 5 primers in the interval
+		will be returned to the user. 
+		<br />
+		<b>2)</b> The user can pick a position weight matrix from
+		the dropdown list, and 5 primers will be designed around
+		each match.
 	</p>
 	<p>
 		If you have a custom motif not found in the dropdown list, you can can upload a <a href=http://meme.nbcr.net/meme/doc/meme-format.html#min_format>FIMO-formatted motif file</a> by navigating to the Motif Upload page.
@@ -21,7 +32,10 @@
 		<tr>
 			<td><label>Genome</td>
 			<td><span class="small">Please select the genome to which the reads are mapped:</span>
-			<td><select name="genome"><option value="hg19">hg19</option><option value="mm9">mm9</option><option value="dm3">dm3</option>
+			<td><select name="genome">
+					[% FOREACH genome IN genomes %]
+						<option>[% genome %]</option>
+					[% END %]
 		</tr>
 		<tr>
 			<td><label>Product size</td>

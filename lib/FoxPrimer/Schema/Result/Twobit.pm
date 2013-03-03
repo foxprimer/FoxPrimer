@@ -78,6 +78,20 @@ __PACKAGE__->add_columns(
 
 __PACKAGE__->set_primary_key("id");
 
+=head1 UNIQUE CONSTRAINTS
+
+=head2 C<path_unique>
+
+=over 4
+
+=item * L</path>
+
+=back
+
+=cut
+
+__PACKAGE__->add_unique_constraint("path_unique", ["path"]);
+
 =head1 RELATIONS
 
 =head2 genome
@@ -101,8 +115,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-03-01 16:22:29
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:thpaeXT31ZE3vxYFjs4MxA
+# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-03-02 19:06:28
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:zP2zgehNJnRcE0Zv0LtuKQ
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

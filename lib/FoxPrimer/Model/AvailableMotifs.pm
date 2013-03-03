@@ -62,7 +62,7 @@ sub motif_index {
 			$motif_index->{$motif_name} = $motif_file;
 		} else {
 			die "There was a problem reading the motif files. Please check"
-			. " your installation.\n\n";
+			. " your installation.\n\n$motif_name\n\n";
 		}
 	}
 

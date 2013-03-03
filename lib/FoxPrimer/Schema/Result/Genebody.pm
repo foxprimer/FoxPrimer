@@ -106,6 +106,20 @@ __PACKAGE__->add_columns(
 
 __PACKAGE__->set_primary_key("id");
 
+=head1 UNIQUE CONSTRAINTS
+
+=head2 C<accession_unique>
+
+=over 4
+
+=item * L</accession>
+
+=back
+
+=cut
+
+__PACKAGE__->add_unique_constraint("accession_unique", ["accession"]);
+
 =head1 RELATIONS
 
 =head2 genome
@@ -129,8 +143,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-03-01 16:22:29
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:zCagT91zOqcditqdVg6fzw
+# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-03-02 19:06:28
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:vA24T3QeUeCAiU5tzAnNLQ
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

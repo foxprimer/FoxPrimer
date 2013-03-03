@@ -49,4 +49,67 @@ foreach my $accession_to_design (@$accessions_to_design) {
 	isa_ok($accession_to_design, 'HASH');
 }
 
+# Create an instance of FoxPrimer::Model::PrimerDesign for the purpose of
+# testing to make sure that the 'valid_bed_file' will appropriately find
+# errors in a BED-format file for a given genome and return the
+# properly-formatted information in the form of an Array Ref of Hash Refs.
+# 
+# Define a scalar string for the file to which temporary BED coordinates
+# will be written.
+my $temp_bed_fh = "$FindBin::Bin/temp_bed.bed";
+
+# Write a series of BED-format coordinates to file
+open my $temp_bed_file, ">", $temp_bed_fh or die "Could not read from " .
+$temp_bed_fh . "$!\n";
+print $temp_bed_file join("\n",
+	join("\t", 'chrX', '473', '500'),
+	join("\t", 'chrU', '473', '400'),
+	join("\t", 'chrX', '473', '22422827'),
+	join("\t", 'chrX', '473', '22422828'),
+	join("\t", 'chrX', '0', '500'),
+	join("\t", 'chrR', '473', '500'),
+	join("\t", 'chrX', '473', '500'),
+	join("\t", 'chrX', '473', '500'),
+	join("\t", 'chrX', '473', '500'),
+	join("\t", 'chrX', '473', '500'),
+	join("\t", 'chrX', '473', '500'),
+	join("\t", 'chrX', '473', '500'),
+	join("\t", 'chrX', '473', '500'),
+	join("\t", 'chrX', '473', '500'),
+	join("\t", 'chrX', '473', '500'),
+	join("\t", 'chrX', '473', '500'),
+);
+close $temp_bed_file;
+
+my $bed_file_test = FoxPrimer::Model::PrimerDesign->new(
+	genome						=>	'dm3',
+	chip_primers_coordinates	=>	$temp_bed_fh,
+);
+
+# Make sure the bed_file_test object was created correctly.
+isa_ok($bed_file_test, 'FoxPrimer::Model::PrimerDesign');
+
+# Make sure that the bed_file_test object can execute the 'valid_bed_file'
+# subroutine.
+can_ok($bed_file_test, 'valid_bed_file');
+
+# Execute the 'valid_bed_file' subroutine, which should return an Array Ref
+# of errors found in the file and an Array Ref of Hash Refs of genomic
+# coordinates.
+my ($bed_file_errors, $bed_file_coordinates) =
+$bed_file_test->valid_bed_file;
+
+isa_ok($bed_file_errors, 'ARRAY');
+isa_ok($bed_file_coordinates, 'ARRAY');
+isa_ok($bed_file_coordinates->[0], 'HASH');
+cmp_ok(@$bed_file_errors, '==', 6, 
+	'The correct number of errors were found'
+);
+cmp_ok(@$bed_file_coordinates, '==', 10,
+	'The correct number of coordinates were returned'
+);
+
+# Remove the temporary BED file.
+unlink($temp_bed_fh);
+
 done_testing();

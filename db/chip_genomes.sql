@@ -2,7 +2,7 @@ DROP TABLE IF EXISTS genomes;
 
 CREATE TABLE genomes (
 	id INTEGER PRIMARY KEY,
-	genome TEXT UNIQUE
+	genome TEXT UNIQUE ON CONFLICT REPLACE
 );
 
 DROP TABLE IF EXISTS twobit;
@@ -10,7 +10,7 @@ DROP TABLE IF EXISTS twobit;
 CREATE TABLE twobit (
 	id INTEGER PRIMARY KEY,
 	genome INTEGER REFERENCES genomes(id),
-	path TEXT
+	path TEXT UNIQUE ON CONFLICT REPLACE
 );
 
 DROP TABLE IF EXISTS chromosomesizes;
@@ -18,7 +18,7 @@ DROP TABLE IF EXISTS chromosomesizes;
 CREATE TABLE chromosomesizes (
 	id INTEGER PRIMARY KEY,
 	genome INTEGER REFERENCES genomes(id),
-	path TEXT
+	path TEXT UNIQUE ON CONFLICT REPLACE
 );
 
 DROP TABLE IF EXISTS genebodies;
@@ -26,7 +26,7 @@ DROP TABLE IF EXISTS genebodies;
 CREATE TABLE genebodies (
 	id INTEGER PRIMARY KEY,
 	genome INTEGER REFERENCES genomes(id),
-	accession TEXT,
+	accession TEXT UNIQUE ON CONFLICT REPLACE,
 	chromosome TEXT,
 	txstart INTEGER,
 	txend INTEGER,
