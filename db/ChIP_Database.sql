@@ -6,6 +6,7 @@ CREATE TABLE chip_primer_pairs_general (
 	right_primer_sequence TEXT,
 	left_primer_tm NUMBER,
 	right_primer_tm NUMBER,
+	genome TEXT,
 	chromosome TEXT,
 	left_primer_five_prime INTEGER,
 	left_primer_three_prime INTEGER,

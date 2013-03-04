@@ -89,4 +89,34 @@ cmp_ok($extended_coordinates_4->{target}, 'eq', '140,20',
 	'The target sequence returned correctly'
 );
 
+# Create a new instance of FoxPrimer::Model::PrimerDesign::chipPrimerDesign
+# to test the 'design_primers' subroutine and to make sure that primers and
+# their cognate information is correctly returned.
+my $chip_primer_design =
+FoxPrimer::Model::PrimerDesign::chipPrimerDesign->new(
+	genome			=>	'mm9',
+	bed_coordinates	=>	[
+		{
+			chromosome	=>	'chr17',
+			start		=>	44873272,
+			end			=>	44874897
+		},
+		{
+			chromosome	=>	'chr3',
+			start		=>	88182460,
+			end			=>	88183905
+		},
+	],
+	product_size	=>	'70-150',
+	motif			=>	'RUNX1',
+);
+
+isa_ok($chip_primer_design,
+	'FoxPrimer::Model::PrimerDesign::chipPrimerDesign'
+);
+
+can_ok($chip_primer_design, 'design_primers');
+
+my ($design_errors, $chip_primers) = $chip_primer_design->design_primers;
+
 done_testing();

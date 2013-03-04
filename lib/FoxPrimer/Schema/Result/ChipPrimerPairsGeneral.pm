@@ -64,6 +64,11 @@ __PACKAGE__->table("chip_primer_pairs_general");
   data_type: 'number'
   is_nullable: 1
 
+=head2 genome
+
+  data_type: 'text'
+  is_nullable: 1
+
 =head2 chromosome
 
   data_type: 'text'
@@ -112,6 +117,8 @@ __PACKAGE__->add_columns(
   { data_type => "number", is_nullable => 1 },
   "right_primer_tm",
   { data_type => "number", is_nullable => 1 },
+  "genome",
+  { data_type => "text", is_nullable => 1 },
   "chromosome",
   { data_type => "text", is_nullable => 1 },
   "left_primer_five_prime",
@@ -191,8 +198,8 @@ __PACKAGE__->many_to_many(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07025 @ 2012-08-18 12:46:28
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:rhUa/dySrhfi2xEq5Oyy1A
+# Created by DBIx::Class::Schema::Loader v0.07035 @ 2013-03-03 17:41:37
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:T/gwcs/gJ/NisvplinEnNw
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

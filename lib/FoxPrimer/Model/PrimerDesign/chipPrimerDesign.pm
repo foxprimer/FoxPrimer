@@ -5,6 +5,8 @@ use FindBin;
 use lib "$FindBin::Bin/../lib";
 use FoxPrimer::Schema;
 use FoxPrimer::Model::PrimerDesign::chipPrimerDesign::twoBitToFa;
+use FoxPrimer::Model::PrimerDesign::chipPrimerDesign::FIMO;
+use FoxPrimer::Model::PrimerDesign::chipPrimerDesign::Primer3;
 
 extends 'Catalyst::Model';
 
@@ -95,6 +97,31 @@ has genome	=>	(
 	isa			=>	'Str',
 );
 
+=head2 _mispriming_file
+
+This Moose object is dynamically created based on which species the user
+picks on the web form. This object contains the location of the appropriate
+mispriming file to be used by Primer3 in scalar string format.
+
+=cut
+
+has _mispriming_file	=>	(
+	is			=>	'ro',
+	isa			=>	'Str',
+	required	=>	1,
+	lazy		=>	1,
+	default		=>	sub {
+		my $self = shift;
+
+		if ($self->species eq 'Human') {
+			return "$FindBin::Bin/../root/static/files/human_and_simple";
+		} else {
+			return "$FindBin::Bin/../root/static/files/rodent_and_simple";
+		}
+	},
+	reader		=>	'mispriming_file'
+);
+
 =head2 _genome_id
 
 This Moose object holds the integer value for the genome ID in the
@@ -142,6 +169,10 @@ sub design_primers {
 	# Pre-declare an Array Ref to hold the designed primers.
 	my $designed_primers = [];
 
+	# Pre-declare an Array Ref to hold error messages for primer design
+	# errors.
+	my $design_errors = [];
+
 	# Iterate through the BED coordinates, and design primers for each
 	# set of coordinates.
 	foreach my $coordinate_set ( @{$self->bed_coordinates} ) {
@@ -152,9 +183,9 @@ sub design_primers {
 			$coordinate_set
 		);
 
-		# Pre-declare an Array Ref to hold the FASTA files that will be
-		# given to Primer3 for primer design.
-		my $fasta_files = [];
+		# Pre-declare an Array Ref to hold the coordinates and FASTA files
+		# that will be sent to Primer3 for primer design.
+		my $coordinate_sets_for_primer3 = [];
 
 		# Create an instance of
 		# FoxPrimer::Model::PrimerDesign::chipPrimerDesign::twoBitToFa and
@@ -177,15 +208,131 @@ sub design_primers {
 		if ( $self->motif && $self->motif ne 'No Motif' ) {
 
 			# Create an instance of
-			# FoxPrimer::Model::PrimerDesign::chipPrimerDesign::FIMO.
+			# FoxPrimer::Model::PrimerDesign::chipPrimerDesign::FIMO and
+			# run the 'find_motifs' subroutine to return an Array Ref of
+			# Hash Ref coordinates.
+			my $run_fimo =
+			FoxPrimer::Model::PrimerDesign::chipPrimerDesign::FIMO->new(
+				fasta_file	=>	$temp_fasta,
+				motif		=>	$self->motif
+			);
+			my $motif_coordinates = $run_fimo->find_motifs;
+
+			# Remove the temporary FASTA file.
+			unlink($temp_fasta);
+
+			# If there were any motifs found, extend the coordinates of
+			# these motifs, and create new FASTA format files for each new
+			# coordinate set. Otherwise, add an error message to the
+			# design_errors Array Ref indicating that the motif could not
+			# be found.
+			if (@$motif_coordinates) {
+
+				# Iterate through the motif coordinates, run the
+				# 'extend_coordinates' subroutine. Then create an instance
+				# of
+				# FoxPrimer::Model::PrimerDesign::chipPrimerDesign::twoBitToFa
+				# to create a new FASTA file for each newly created set of
+				# extended coordinates. Add the FASTA file and coordinates
+				# to the coordinate_sets_for_primer3 Array Ref.
+				foreach my $motif_coordinate_set (@$motif_coordinates) {
+					my $extended_motif_coordinates =
+					$self->extend_coordinates(
+						$motif_coordinate_set
+					);
+
+					# Create an instance of
+					# FoxPrimer::Model::PrimerDesign::chipPrimerDesign::twoBitToFa
+					# and run the 'create_temp_fasta' subroutine to return
+					# the path to a new FASTA file.
+					my $motif_twobit_to_fa =
+					FoxPrimer::Model::PrimerDesign::chipPrimerDesign::twoBitToFa->new(
+						genome_id		=>	$self->genome_id,
+						chromosome		=>
+							$extended_motif_coordinates->{chromosome},
+
+						start			=>
+							$extended_motif_coordinates->{start},
+
+						end				=>
+							$extended_motif_coordinates->{end}
+					);
+					$extended_motif_coordinates->{fasta_file} =
+					$motif_twobit_to_fa->create_temp_fasta;
+
+					# Add the FASTA file and coordinates to
+					# coordinate_sets_for_primer3.
+					push(@$coordinate_sets_for_primer3,
+						$extended_motif_coordinates
+					);
+				}
+			} else {
+
+				push(@$design_errors,
+					'The motif ' . $self->motif . ' was not found by FIMO '
+					. 'in the coordinates: ' .
+					$extended_coordinate_set->{chromosome} . ':' .
+					$extended_coordinate_set->{start} . '-' .
+					$extended_coordinate_set->{end}
+				);
+			}
 		} else {
 
-			# Add the original FASTA file to the fasta_files Array Ref.
-			push(@$fasta_files, $temp_fasta);
+			# Add the extended coordinates and the original FASTA file to
+			# the coordinate_sets_for_primer3 Array Ref.
+			$extended_coordinate_set->{fasta_file} = $temp_fasta;
+			push(@$coordinate_sets_for_primer3, $extended_coordinate_set);
+		}
+
+		# Iterate through the coordinate_sets_for_primer3 and create
+		# primers and create an instance of
+		# FoxPrimer::Model::PrimerDesign::chipPrimerDesign::Primer3 to
+		# design primers either within the interval defined by the user or
+		# within the user and flanking the target sequence (motif or
+		# summit).
+		foreach my $coordinate_set_for_primer3
+		(@$coordinate_sets_for_primer3) {
+
+			# Create an instance of
+			# FoxPrimer::Model::PrimerDesign::chipPrimerDesign::Primer3
+			my $primer3 =
+			FoxPrimer::Model::PrimerDesign::chipPrimerDesign::Primer3->new(
+				fasta_file		=>
+					$coordinate_set_for_primer3->{fasta_file},
+
+				genome			=>	$self->genome,
+				chromosome		=>
+					$coordinate_set_for_primer3->{chromosome},
+
+				start			=>	$coordinate_set_for_primer3->{start},
+				end				=>	$coordinate_set_for_primer3->{end},
+				target			=>	$coordinate_set_for_primer3->{target},
+				product_size	=>	$self->product_size,
+				mispriming_file	=>	$self->mispriming_file,
+			);
+
+			# Run the 'create_primers' subroutine to return an Array Ref of
+			# primers and an error message if Primer3 was unable to design
+			# primers.
+			my ($chip_primers, $error_message) =
+			$primer3->design_primers;
+
+			# If primers were designed, add them to the designed_primers
+			# Array Ref.
+			if (@$chip_primers) {
+				push(@$designed_primers, @$chip_primers);
+			} else {
+				# If no primers were designed, add the error_message to the
+				# design_errors Array Ref.
+				push(@$design_errors, $error_message);
+			}
 		}
 	}
 
-	return $designed_primers;
+	# Run the unique_primers subroutine to return unique primers
+	my $unique_primers = $self->unique_primers($designed_primers);
+
+	return ($design_errors, $designed_primers);
 }
 
 =head2 extend_coordinates
@@ -343,6 +490,44 @@ sub chromosome_sizes {
 	}
 
 	return $chrom_sizes;
+}
+
+=head2 unique_primers
+
+This subroutine takes an Array Ref of designed ChIP primers as an argument
+and returns only unique primers.
+
+=cut
+
+sub unique_primers {
+	my ($self, $all_primers) = @_;
+
+	# Pre-declare an Array Ref to hold the unique primers.
+	my $unique_primers = [];
+
+	# Pre-declare a Hash Ref to hold the primers that have been seen.
+	my $seen_primers = {};
+
+	# Iterate through the primers, and determine which primers are unique.
+	foreach my $primer_set ( @$all_primers ) {
+
+		# Define a string for the primer pair
+		my $primer_seqs = join(',',
+			$primer_set->{left_primer_sequence},
+			$primer_set->{right_primer_sequence}
+		);
+
+		# If the primer pair has not been seen before, add it to the
+		# unique_primers Array Ref.
+		unless ( $seen_primers->{$primer_seqs} ) {
+			push(@$unique_primers, $primer_set);
+
+			# Store the primer string in the seen_primers Hash Ref.
+			$seen_primers->{$primer_seqs} = 1;
+		}
+	}
+
+	return $unique_primers;
 }
 
 __PACKAGE__->meta->make_immutable;
