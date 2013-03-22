@@ -432,6 +432,18 @@ sub chip_primer_design :Chained('/') :PathPart('chip_primer_design') :Args(0) {
 			# If there are any errors in the form, cease ChIP primer design
 			# and return the errors to the user.
 			if (@$form_errors) {
+				$c->stash(
+					template	=>	
+						'chip_primer_design.tt',
+						
+					error_msg	=>	$form_errors,
+					
+					motifs		=>
+						$c->model('AvailableMotifs')->available_motifs,
+
+					genomes		=>
+						$c->model('PrimerDesign::chipPrimerDesign::AvailableGenomes')->installed_genomes,
+				);
 
 			} else {
 
