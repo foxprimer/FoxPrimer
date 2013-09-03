@@ -1,7 +1,7 @@
 [% WRAPPER default.tt title = c.config.name ; END %]
 [% META title = 'Search Primer Database' %]
 <div id="stylized" class="myform" align="center">
-<form name="search_database" method=POST action="search_database">
+<form name="search" method=POST action="search">
 	<p>
 		This search box allows you search the primers database.
 	</p>

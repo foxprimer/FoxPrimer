@@ -43,8 +43,9 @@ while (<$gene2accession_file>) {
 			($RNA_nucleotide_gi =~ /^\d+$/) && 
 			($genomic_nucleotide_gi =~ /^\d+$/) &&
 			($start_position_on_the_genomic_accession =~ /^\d+/) && 
-			($end_position_on_the_genomic_accession =~ /^\d+$/) && 
-			$genomic_nucleotide_accession =~ /^NC_/) {
+			($end_position_on_the_genomic_accession =~ /^\d+$/) ) {
+#			($end_position_on_the_genomic_accession =~ /^\d+$/) && 
+#			$genomic_nucleotide_accession =~ /^NC_/) {
 			# Declare a string for the mRNA root
 			my $mrna_root = '';
 			if ( $RNA_nucleotide_accession =~ /^(\w\w_\d+)\.\d+$/ ) {

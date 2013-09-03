@@ -22,7 +22,8 @@
 use strict;
 use warnings;
 use utf8;
-use lib './lib/';
+use FindBin;
+use lib "$FindBin::Bin/../lib";
 use FoxPrimer::Schema;
 use Data::Dumper;
 

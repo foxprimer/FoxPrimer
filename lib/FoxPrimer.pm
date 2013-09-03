@@ -1,6 +1,8 @@
 package FoxPrimer;
 use Moose;
 use namespace::autoclean;
+use FindBin;
+use lib "$FindBin::Bin/../lib";
 
 use Catalyst::Runtime 5.80;
 
@@ -20,6 +22,7 @@ use Catalyst qw/
     -Debug
     ConfigLoader
     Static::Simple
+    StatusMessage
 /;
 
 extends 'Catalyst';
@@ -41,6 +44,15 @@ __PACKAGE__->config(
     disable_component_resolution_regex_fallback => 1,
     enable_catalyst_header => 1, # Send X-Catalyst header
 	default_view	=>	'Web',
+);
+__PACKAGE__->config(
+    # Configure the view
+    'View::HTML' => {
+        #Set the location for TT files
+        INCLUDE_PATH => [
+            __PACKAGE__->path_to( 'root', ),
+        ],
+    },
 );
 
 # Start the application

@@ -4,10 +4,12 @@ use namespace::autoclean;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 use FoxPrimer::Schema;
-use FoxPrimer::Model::Search::CreatedPrimers;
 use FoxPrimer::Model::Search::ValidatedPrimers;
 
 extends 'Catalyst::Model';
+
+with 'FoxPrimer::Model::Primer_Database';
+with 'FoxPrimer::Model::Search::CreatedPrimers';
 
 =head1 NAME
 
@@ -42,28 +44,6 @@ has search_string   =>  (
     isa         =>  'Str'
 );
 
-=head2 gene2accession_schema
-
-This Moose object is created by a lazy loader, which will create a
-DBIx::Class::ResultSet object for the Gene2Accession database. This object
-is private and can not be modified upon creation of a
-FoxPrimer::Model::PrimerDesign object.
-
-=cut
-
-has _gene2accession_schema	=>	(
-	is			=>	'ro',
-	isa			=>	'FoxPrimer::Schema',
-	default		=>	sub {
-		my $self = shift;
-		my $dsn = "dbi:SQLite:$FindBin::Bin/../db/gene2accession.db";
-		my $schema = FoxPrimer::Schema->connect($dsn, '', '', '');
-		return $schema;
-	},
-	required	=>	1,
-	reader		=>	'gene2accession_schema',
-);
-
 =head2 search_databases
 
 This subroutine takes the search string entered by the user and first
@@ -81,31 +61,28 @@ sub search_databases {
     # full RefSeq mRNA accessions (if there were any to be found).
     my $full_accessions = $self->find_full_accessions;
 
-    # Create an instance of FoxPrimer::Model::Search::CreatedPrimers to
-    # search the FoxPrimer databases for created cDNA and ChIP primers.
-	my $created_search = FoxPrimer::Model::Search::CreatedPrimers->new(
-		search_string			=>	$self->search_string,
-		accessions_to_search	=>	$full_accessions
-	);
+    # Run the 'search_created_cdna_primers' subroutine consumed from
+    # FoxPrimer::Model::Search::CreatedPrimers to returned an Array Ref of
+    # unique cDNA primer pairs in the created primers database.
+    my $created_cdna_primers =
+    $self->search_created_cdna_primers(
+        $self->search_string,
+        $full_accessions
+    );
 
-	# Run the 'search_created_cdna_primers' subroutine to returned an Array
-	# Ref of unique cDNA primer pairs in the created primers database.
-	my $created_cdna_primers =
-	$created_search->search_created_cdna_primers;
+    # The following Array Refs are placeholders for when full methods are
+    # re-written.
+    my $created_chip_primers = [];
+    my $validated_cdna_primers = [];
+    my $validated_chip_primers = [];
 
-	# The following Array Refs are placeholders for when full methods are
-	# re-written.
-	my $created_chip_primers = [];
-	my $validated_cdna_primers = [];
-	my $validated_chip_primers = [];
-
-	# Return a Hash Ref of search results.
-	return {
-		created_cdna_primers	=>	$created_cdna_primers,
-		created_chip_primers	=>	$created_chip_primers,
-		validated_cdna_primers	=>	$validated_cdna_primers,
-		validated_chip_primers	=>	$validated_chip_primers
-	};
+    # Return a Hash Ref of search results.
+    return {
+        created_cdna_primers    =>  $created_cdna_primers,
+        created_chip_primers    =>  $created_chip_primers,
+        validated_cdna_primers  =>  $validated_cdna_primers,
+        validated_chip_primers  =>  $validated_chip_primers
+    };
 }
 
 =head2 find_full_accessions
@@ -129,15 +106,15 @@ sub find_full_accessions {
     # Use regular expressions to search for possible RefSeq mRNA accessions
     # and store the matches in the accessions_to_search Array Ref.
     while ( $search_string =~ /(\w\w_\d+)/g ) {
-        push(@$accessions_to_search, $1);
+        push(@{$accessions_to_search}, $1);
     }
 
     # Pre-declare an Array Ref to hold the found full accessions
     my $full_accessions = [];
 
-    # Test to make sure there are potential accessions to be searching for,
-    # if there are none, return the empty Array Ref
-    if (@$accessions_to_search) {
+    # Test to make sure there are potential accessions to be searching for, if
+    # there are none, return the empty Array Ref
+    if (scalar(@{$accessions_to_search}) >= 1) {
 
         # Create a result set for the Gene2accession database
         my $gene2accession_result_set =
@@ -155,13 +132,12 @@ sub find_full_accessions {
             # If a result has been found, add the full mRNA accession to
             # the full_accessions Array Ref.
             foreach my $search_result (@search_results) {
-                push(@$full_accessions, $search_result->mrna);
+                push(@{$full_accessions}, $search_result->mrna);
             }
         }
 
         return $full_accessions;
     } else {
-
         return $full_accessions;
     }
 }

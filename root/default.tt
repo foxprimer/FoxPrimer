@@ -155,8 +155,8 @@
 			<IMG class="catalyst" src="[% c.uri_for('/static/images/btn_120x50_powered.png') %]" />
 			<UL class="navigation">
 			<li><a href="[% c.uri_for('/') %]">Home Page</a></li>
-			<li><a href="[% c.uri_for('search_database') %]">Search qPCR Primer Database</a></li>
-			<li><a href="[% c.uri_for('mrna_primer_design_shell') %]">Create cDNA Primers</a></li>
+			<li><a href="[% c.uri_for('/search') %]">Search qPCR Primer Database</a></li>
+			<li><a href="[% c.uri_for('/mrna_primer_design') %]">Create cDNA Primers</a></li>
 			<li><a href="[% c.uri_for('chip_primer_design_shell') %]">Create ChIP Primers</a></li>
 			<li><a href="[% c.uri_for('validated_primers_entry_shell') %]">Enter Validated qPCR Primers</a></li>
 			</UL>
