@@ -35,12 +35,12 @@ Catalyst::Helper::Model::DBIC::Schema - 0.59
 
 =head1 AUTHOR
 
-Jason R Dobson foxprimer@gmail.com
+Jason R Dobson L<foxprimer@gmail.com>
 
 =head1 LICENSE
 
-This library is free software, you can redistribute it and/or modify
-it under the same terms as Perl itself.
+This library is free software, you can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut
 

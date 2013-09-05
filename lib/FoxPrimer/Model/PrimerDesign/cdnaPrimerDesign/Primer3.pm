@@ -1,5 +1,5 @@
 package FoxPrimer::Model::PrimerDesign::cdnaPrimerDesign::Primer3;
-use Moose;
+use Moose::Role;
 use namespace::autoclean;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
@@ -7,16 +7,15 @@ use Bio::SeqIO;
 use FoxPrimer::Model::PrimerDesign::Primer3;
 use Data::Dumper;
 
-extends 'Catalyst::Model';
-
 =head1 NAME
 
 FoxPrimer::Model::PrimerDesign::cdnaPrimerDesign::Primer3 - Catalyst Model
 
 =head1 DESCRIPTION
 
-This module creates primers for cDNA sequences and returns a Hash Ref of the
-information about each primer pair made for the given cDNA sequence.
+This Moose::Role exports the functions for the creation of primers for cDNA
+sequences and returns a Hash Ref of the information about each primer pair made
+for the given cDNA sequence.
 
 =head1 AUTHOR
 
@@ -29,56 +28,7 @@ the same terms as Perl itself.
 
 =cut
 
-=head2 product_size
-
-This Moose object is the pre-validated product size string used by Primer3
-as constraints for primer products.
-
-=cut
-
-has product_size    =>  (
-    is          =>  'ro',
-    isa         =>  'Str'
-);
-
-=head2 mispriming_file
-
-This Moose object holds the string (defined by the species chosen by the user)
-of the file location that will be used by Primer3 as the mispriming library of
-sequences.
-
-=cut
-
-has mispriming_file =>  (
-    is          =>  'ro',
-    isa         =>  'Str',
-);
-
-=head2 primer3_path
-
-This Moose object holds the pre-validated path (in string format) to the
-'primer3_core' executable.
-
-=cut
-
-has primer3_path    =>  (
-    is          =>  'ro',
-    isa         =>  'Str'
-);
-
-=head2 cdna_fh
-
-This Moose object holds the string-format path to the FASTA format cDNA sequence
-file for which primers will be designed.
-
-=cut
-
-has cdna_fh =>  (
-    is          =>  'ro',
-    isa         =>  'Str'
-);
-
-=head2 create_primers
+=head2 make_primer3_primers
 
 This subroutine creates a FoxPrimer::Model::Updated_Primer3_Run object and runs
 primer3 for the cDNA sequence in the file provided by the user.  Primers and
@@ -86,10 +36,22 @@ their cognate information is returned in a Hash Ref. If no primers are designed,
 an error message is returned along with an empty Hash Ref. The final variable
 returned in the number of primers designed by Primer3.
 
+This subroutine is passed the following arguments:
+
+    1. A valid primer3 product size string
+    2. The path to a primer3 mispriming library file
+    3. A cDNA sequence as a string
+
+and returns an Array Ref of created primers, an Array Ref of error messages and
+an integer value for the number of primers created.
+
 =cut
 
-sub create_primers {
+sub make_primer3_primers {
     my $self = shift;
+    my $product_size = shift;
+    my $mispriming_file = shift;
+    my $cdna_seq = shift;
 
     # Pre-declare a Hash Ref to hold the primers created.
     my $created_primers = {};
@@ -98,7 +60,7 @@ sub create_primers {
     my $error_messages = '';
 
     # Extract the cDNA sequence by running the 'cdna_sequence' subroutine
-    my $cdna_seq = $self->cdna_sequence;
+#    my $cdna_seq = $self->cdna_sequence;
 
 #    # Create a FoxPrimer::Model::Updated_Primer3_Run object
 #    my $primer3 = FoxPrimer::Model::Updated_Primer3_Run->new(
@@ -108,11 +70,11 @@ sub create_primers {
 #    );
     # Create a FoxPrimer::Model::PrimerDesign::Primer3 object
     my $primer3 = FoxPrimer::Model::PrimerDesign::Primer3->new(
-        SEQUENCE_TEMPLATE                       =>  $cdna_seq->seq,
+        SEQUENCE_TEMPLATE                       =>  $cdna_seq,
         PRIMER_TASK                             =>  'generic',
-        PRIMER_PRODUCT_SIZE_RANGE               =>  $self->product_size,
+        PRIMER_PRODUCT_SIZE_RANGE               =>  $product_size,
         PRIMER_THERMODYNAMIC_PARAMETERS_PATH    =>  "$FindBin::Bin/../root/static/primer3_files/primer3_config/",
-        PRIMER_MISPRIMING_LIBRARY               =>  $self->mispriming_file
+        PRIMER_MISPRIMING_LIBRARY               =>  $mispriming_file
     );
 
 #    # Add the mispriming library, number to make, and a product size range
@@ -175,27 +137,5 @@ sub create_primers {
         return ($created_primers, $error_messages, 0);
     }
 }
-
-=head2 cdna_sequence
-
-This subroutine takes the user-defined path to the cDNA sequence in FASTA
-format and extracts the sequence using Bio::SeqIO.
-
-=cut
-
-sub cdna_sequence {
-    my $self = shift;
-
-    # Create a Bio::SeqIO object for the cDNA file provided by the user.
-    my $seqio = Bio::SeqIO->new(
-        -file   =>  $self->cdna_fh,
-        -format =>  'FASTA'
-    );
-
-    # Extract the sequence from the file and return it
-    return $seqio->next_seq;
-}
-
-__PACKAGE__->meta->make_immutable;
 
 1;

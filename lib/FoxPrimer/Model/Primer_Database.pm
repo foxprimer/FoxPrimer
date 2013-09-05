@@ -99,6 +99,41 @@ sub _get_gene2accession_schema  {
     );
 }
 
+=head2 chip_genomes_schema
+
+This Moose attribute contains the schema for connecting to the ChIP Genomes
+FoxPrimer database.
+
+=cut
+
+has chip_genomes_schema =>  (
+    is          =>  'ro',
+    isa         =>  'FoxPrimer::Schema',
+    predicate   =>  'has_chip_genomes_schema',
+    writer      =>  '_set_chip_genomes_schema',
+);
+
+before  'chip_genomes_schema'   =>  sub {
+    my $self = shift;
+    unless ($self->has_chip_genomes_schema) {
+        $self->_set_chip_genomes_schema($self->_get_chip_genomes_schema);
+    }
+};
+
+=head2 _get_chip_genomes_schema
+
+This private subroutine is dynamically run to return a FoxPrimer::Schema object
+that connects to the ChIP Genomes Schema.
+
+=cut
+
+sub _get_chip_genomes_schema    {
+    my $self = shift;
+    my $dsn = "dbi:SQLite:$FindBin::Bin/../db/chip_genomes.db";
+    my $schema = FoxPrimer::Schema->connect($dsn, '', '', '');
+    return $schema;
+}
+
 =head2 prepare_insert_lines
 
 This subroutine prepares lines to be inserted by the controller into

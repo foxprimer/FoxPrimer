@@ -7,6 +7,8 @@ use FoxPrimer::Model::PrimerDesign::cdnaPrimerDesign;
 use FoxPrimer::Model::PrimerDesign::chipPrimerDesign;
 use namespace::autoclean;
 
+with 'FoxPrimer::Model::Primer_Database';
+
 extends 'Catalyst::Model';
 
 =head1 NAME
@@ -109,47 +111,47 @@ has species =>  (
     isa         =>  'Str',
 );
 
-=head2 gene2accession_schema
+#=head2 gene2accession_schema
+#
+#This Moose object is created by a lazy loader, which will create a
+#DBIx::Class::ResultSet object for the Gene2Accession database. This object
+#is private and can not be modified upon creation of a
+#FoxPrimer::Model::PrimerDesign object.
+#
+#=cut
+#
+#has _gene2accession_schema  =>  (
+#    is          =>  'ro',
+#    isa         =>  'FoxPrimer::Schema',
+#    default     =>  sub {
+#        my $self = shift;
+#        my $dsn = "dbi:SQLite:$FindBin::Bin/../db/gene2accession.db";
+#        my $schema = FoxPrimer::Schema->connect($dsn, '', '', '');
+#        return $schema;
+#    },
+#    required    =>  1,
+#    reader      =>  'gene2accession_schema',
+#);
 
-This Moose object is created by a lazy loader, which will create a
-DBIx::Class::ResultSet object for the Gene2Accession database. This object
-is private and can not be modified upon creation of a
-FoxPrimer::Model::PrimerDesign object.
-
-=cut
-
-has _gene2accession_schema  =>  (
-    is          =>  'ro',
-    isa         =>  'FoxPrimer::Schema',
-    default     =>  sub {
-        my $self = shift;
-        my $dsn = "dbi:SQLite:$FindBin::Bin/../db/gene2accession.db";
-        my $schema = FoxPrimer::Schema->connect($dsn, '', '', '');
-        return $schema;
-    },
-    required    =>  1,
-    reader      =>  'gene2accession_schema',
-);
-
-=head2 _chip_genomes_schema
-
-This Moose object contains the Schema for connecting to the ChIP Genomes
-FoxPrimer database
-
-=cut
-
-has _chip_genomes_schema    =>  (
-    is          =>  'ro',
-    isa         =>  'FoxPrimer::Schema',
-    default     =>  sub {
-        my $self = shift;
-        my $dsn = "dbi:SQLite:$FindBin::Bin/../db/chip_genomes.db";
-        my $schema = FoxPrimer::Schema->connect($dsn, '', '', '');
-        return $schema;
-    },
-    required    =>  1,
-    reader      =>  'chip_genomes_schema',
-);
+#=head2 _chip_genomes_schema
+#
+#This Moose object contains the Schema for connecting to the ChIP Genomes
+#FoxPrimer database
+#
+#=cut
+#
+#has _chip_genomes_schema    =>  (
+#    is          =>  'ro',
+#    isa         =>  'FoxPrimer::Schema',
+#    default     =>  sub {
+#        my $self = shift;
+#        my $dsn = "dbi:SQLite:$FindBin::Bin/../db/chip_genomes.db";
+#        my $schema = FoxPrimer::Schema->connect($dsn, '', '', '');
+#        return $schema;
+#    },
+#    required    =>  1,
+#    reader      =>  'chip_genomes_schema',
+#);
 
 =head2 genome
 

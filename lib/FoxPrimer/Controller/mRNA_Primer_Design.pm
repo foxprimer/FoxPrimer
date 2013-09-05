@@ -97,33 +97,33 @@ sub mrna_primer_design :Private {
                 my $primer_design =
                 $c->model('PrimerDesign::cdnaPrimerDesign')->new(
                     species             =>  $c->request->parameters->{species},
+
                     product_size_string =>
-                        $c->request->parameters->{product_size},
+                    $c->request->parameters->{product_size},
 
                     number_per_type     =>
-                        $c->request->parameters->{number_per_type},
+                    $c->request->parameters->{number_per_type},
 
                     intron_size         =>
-                        $c->request->parameters->{intron_size},
+                    $c->request->parameters->{intron_size},
                         
                     primers_to_make     =>  $accessions_to_make_primers
                 );
 
                 # Run the 'create_primers' subroutine to return an insert
-                # statement of primers to be inserted into the FoxPrimer
-                # created primers database and returned to the user.
-                my ($created_cdna_primers, $primer3_error_messages) = 
-                    $primer_design->create_primers;
+                # statement of primers to be inserted into the FoxPrimer created
+                # primers database and returned to the user.
+                my ($created_cdna_primers, $primer3_error_messages) =
+                $primer_design->create_primers;
 
-                print Dumper $created_cdna_primers;
-
-                push(@$accession_errors, @$primer3_error_messages) if
-                @$primer3_error_messages;
+                if ( $primer3_error_messages && ( scalar ( @{$primer3_error_messages}) >= 1 ) ) {
+                    push(@{$accession_errors}, @{$primer3_error_messages});
+                }
 
                 # If there are any primers to return to the user, insert them
                 # into the FoxPrimer created primers database, and return them
                 # to the user.
-                if (@$created_cdna_primers) {
+                if ($created_cdna_primers && ( scalar( @{$created_cdna_primers}) >= 1 )) {
                     # Create a FoxPrimer::Model::CreatedPrimers::Primer result
                     # set to insert the primers into the FoxPrimer database.
                     my $created_primers_result_set =
