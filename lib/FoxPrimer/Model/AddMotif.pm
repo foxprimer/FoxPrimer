@@ -8,7 +8,6 @@ use lib "$FindBin::Bin/../lib";
 use File::Which;
 use IPC::Run3;
 use File::Temp;
-use File::Copy;
 use Data::Dumper;
 
 with 'FoxPrimer::Model::AvailableMotifs';
@@ -155,14 +154,26 @@ sub add_motif   {
             return 0;
         } else {
 
+            # Open the motif file and copy the contents to an Array Ref
+            my $motif_file_lines = [];
+            open my $user_file, "<", $self->motif_file;
+            while(<$user_file>) {
+                my $line = $_;
+                chomp($line);
+                push(@{$motif_file_lines}, $line);
+            }
+            close $user_file;
+
             # Define a string for the path to the location in the FoxPrimer
             # directory
             my $installation_location =
             "$FindBin::Bin/../root/static/meme_motifs/" . $self->motif_name .
             '.meme';
 
-            # Copy the motif file contents to the installation location
-            copy($self->motif_file, $installation_location) or return 0;
+            # Print the motif file contents to the installation location
+            open my $install_out, ">", $installation_location;
+            print $install_out join("\n", @{$motif_file_lines});
+            close $install_out;
 
             # Pre-declare an Array Ref to hold the motif names
             my $motif_names_list = [];
@@ -175,10 +186,13 @@ sub add_motif   {
                 push(@{$motif_names_list}, $index_name);
             }
             close $index_file;
+
+            # Add the user-defined name to the list
+            push( @{$motif_names_list}, $self->motif_name);
+
             open my $index_out, '>', $self->motifs_file;
             print $index_out join("\n", @{$motif_names_list});
             close $index_out;
-
             if (-s $self->motifs_file && -s $installation_location) {
                 return 1;
             } else {
