@@ -17,11 +17,11 @@ FoxPrimer::Model::PrimerDesign - Catalyst Model
 
 =head1 DESCRIPTION
 
-This is the main subroutine called by the FoxPrimer Controller module to
-check the user forms and entries to ensure that valid data will be passed
-to the primer design algorithms. Once the information has passed the
-required tests, this module will create instances of mRNA_Primer_Design or
-ChIP_Primer_Design as required.
+This is the main subroutine called by the FoxPrimer Controller module to check
+the user forms and entries to ensure that valid data will be passed to the
+primer design algorithms. Once the information has passed the required tests,
+and pass the information on to FoxPrimer::Model::PrimerDesign::cdnaPrimerDesign
+or FoxPrimer::Model::PrimerDesign::chipPrimerDesign as appropriate.
 
 =head1 AUTHOR
 
@@ -60,13 +60,14 @@ has max_number_per_type => (
     # Change the default value here based on your server limitations.
     default     =>  10,
     lazy        =>  1,
+    writer      =>  '_set_max_number_per_type',
 );
 
 =head2 number_per_type
 
-This Moose object is defined by the user in the webpage as the number of
-primer pairs they wish to make per type. This value will be contrained by
-the administrator-defined maximum value.
+This Moose object is defined by the user in the webpage as the number of primer
+pairs they wish to make per type. This value will be contrained by the
+administrator-defined maximum value.
 
 =cut
 
@@ -77,8 +78,8 @@ has number_per_type =>  (
 
 =head2 intron_size
 
-This Moose object is defined by the user in the webpage as the minimum
-intron size to be used when defining the type of primer pair types.
+This Moose object is defined by the user in the webpage as the minimum intron
+size to be used when defining the type of primer pair types.
 
 =cut
 
@@ -89,8 +90,8 @@ has intron_size =>  (
 
 =head2 accessions_string
 
-This Moose object holds the string of RefSeq mRNA accessions that the user
-would like to create cDNA primers for.
+This Moose object holds the string of RefSeq mRNA accessions that the user would
+like to create cDNA primers for.
 
 =cut
 
@@ -101,8 +102,8 @@ has accessions_string   =>  (
 
 =head2 species
 
-This Moose object is defined by the use in the dropdown box, and will be
-used to determine which mispriming file is appropriate for primer3.
+This Moose object is defined by the use in the dropdown box, and will be used to
+determine which mispriming file is appropriate for primer3.
 
 =cut
 
@@ -177,36 +178,6 @@ has motif   =>  (
     isa         =>  'Str',
 );
 
-=head2 chip_primers_coordinates
-
-This Moose object contains the path to the user-uploaded file containing
-the information for ChIP primer design.
-
-=cut
-
-has chip_primers_coordinates    =>  (
-    is          =>  'ro',
-    isa         =>  'Str'
-);
-
-=head2 _max_bed_lines
-
-This private Moose object is to be controlled by the administrator based
-on their server's capabilities. This controls how many lines of the BED
-file uploaded by the user that will be read in for ChIP primer design. By
-default this value is set to 10.
-
-=cut
-
-has _max_bed_lines  =>  (
-    is          =>  'ro',
-    isa         =>  'Int',
-    default     =>  10,
-    required    =>  1,
-    lazy        =>  1,
-    reader      =>  'max_bed_lines',
-);
-
 =head2 validate_mrna_form
 
 This subroutine is called by the FoxPrimer Controller module to ensure that the
@@ -273,38 +244,28 @@ sub validate_mrna_form {
 
 =head2 validate_chip_form
 
-This is the main subroutine called by the FoxPrimer Catalyst controller.
-This subroutine makes calls to validate the product size, genome, motif (if
-entered) and the form of coordinates uploaded by the user. If there are any
-errors in any of these parameters, a verbose message is returned to the
-FoxPrimer Controller and execution will end.
+This is the main subroutine called by the FoxPrimer Catalyst controller.  This
+subroutine makes calls to validate the product size, genome, motif (if entered)
+and the form of coordinates uploaded by the user. If there are any errors in any
+of these parameters, a verbose message is returned to the FoxPrimer Controller
+and execution will end.
 
 =cut
 
 sub validate_chip_form {
     my $self = shift;
 
-    # Pre-declare an Array Ref to hold an error messages to be returned to
-    # the user.
+    # Pre-declare an Array Ref to hold an error messages to be returned to the
+    # user.
     my $form_errors = [];
 
-    # Determine if the field entered for the product size is valid by
-    # running the FoxPrimer::Model::PrimerDesign::validate_product_size
-    # subroutine.
+    # Determine if the field entered for the product size is valid by running
+    # the FoxPrimer::Model::PrimerDesign::validate_product_size subroutine.
     my $product_size_errors = $self->validate_product_size;
 
     # If there are any errors, add them to the form_errors Array Ref
-    if (@$product_size_errors) {
-        push(@$form_errors, @$product_size_errors);
-    }
-
-    # Determine whether the genome entered by the user has been installed
-    # in the FoxPrimer database.
-    my $genome_error = $self->validate_genome;
-
-    # If there are any errors, add them to the form_errors Array Ref
-    if ( $genome_error ) {
-        push(@$form_errors, $genome_error);
+    if ($product_size_errors && ( scalar (@{$product_size_errors}) >= 1 )) {
+        push(@{$form_errors}, @{$product_size_errors});
     }
 
     # Determine whether the motif entered by the user has been installed in
@@ -314,8 +275,8 @@ sub validate_chip_form {
 
         # If there are any motif errors, add them to the form_errors Array
         # Ref.
-        if (@$motif_errors) {
-            push(@$form_errors, @$motif_errors);
+        if ($motif_errors && ( scalar (@{$motif_errors} >= 1 ))) {
+            push(@{$form_errors}, @{$motif_errors});
         }
     }
 
@@ -520,44 +481,10 @@ sub valid_refseq_accessions {
     return ($error_messages, $accessions_to_make_primers);
 }
 
-=head2 validate_genome
-
-This subroutine is used to ensure that the user-defined genome for
-designing ChIP primers has been installed in the FoxPrimer database. If the
-genome has not been installed, an error message is returned.
-
-=cut
-
-sub validate_genome {
-    my $self = shift;
-
-    # Search the Genome table in the ChIP genome database for the
-    # user-defined genome.
-    my $search_result =
-    $self->chip_genomes_schema->resultset('Genome')->find(
-        {
-            genome  =>  $self->genome
-        }
-    );
-
-    # If the genome is found, return an empty string, otherwise return an
-    # error indicating that the user-defined genome was not installed. This
-    # should typically not happen because the Template Toolkit form uses a
-    # drop-down menu (defined by the ChIP genomes database) to control
-    # which genomes can be chosen by the user.
-    if ( $search_result && $search_result->genome eq $self->genome ) {
-        return '';
-    } else {
-        return 'The genome ' . $self->genome . ' is not installed.' .
-        ' Please contact your administrator to insall the genome.';
-    }
-}
-
 =head2 validate_motif
 
-This subroutine is used to determine whether the user-defined motif is
-valid and that the file corresponding to the motif can be found and read by
-FoxPrimer.
+This subroutine is used to determine whether the user-defined motif is valid and
+that the file corresponding to the motif can be found and read by FoxPrimer.
 
 =cut
 
@@ -607,153 +534,6 @@ sub validate_motif {
     }
 
     return $motif_errors;
-}
-
-=head2 valid_bed_file
-
-This subroutine determines whether the file of coordinates for ChIP primer
-design uploaded by the user is valid.
-
-=cut
-
-sub valid_bed_file {
-    my $self = shift;
-
-    # Pre-declare an Array Ref to hold any errors found in the user's file.
-    my $bed_file_errors = [];
-
-    # Pre-declare an Array Ref to hold the coordinates found in the user's
-    # file.
-    my $bed_file_coordinates = [];
-
-    # Pre-define a line number so that useful errors can be returned to the
-    # user.
-    my $line_number = 0;
-
-    # Create an instance of
-    # FoxPrimer::Model::PrimerDesign::chipPrimerDesign and run the
-    # chromosome_sizes subroutine to return a Hash Ref of chromosome names
-    # as keys and chromosome lengths as key values.
-    my $get_chromosome_sizes =
-    FoxPrimer::Model::PrimerDesign::chipPrimerDesign->new(
-        genome  =>  $self->genome
-    );
-    my $chromosome_sizes = $get_chromosome_sizes->chromosome_sizes;
-
-    # Open the user-defined BED file, iterate through the lines, and test
-    # the fields on each line to make sure they are valid.
-    open my $bed_file, "<", $self->chip_primers_coordinates or die 
-    "Could not read from " . $self->chip_primers_coordinates . "$!\n";
-    while (<$bed_file>) {
-        my $line = $_;
-        chomp($line);
-
-        # Increase the line number
-        $line_number++;
-
-        # Make sure that the max_bed_lines threshold has not been reached.
-        if ( @$bed_file_coordinates < $self->max_bed_lines ) {
-
-            # Split the BED file line by the tab character
-            my @bed_line_items = split(/\t/, $line);
-
-            # Make sure that the BED file line has enough information for
-            # primer design.
-            if ( @bed_line_items >= 3 ) {
-
-                # Check each field to make sure that they are valid.
-                #
-                # The first field holds the chromosome string, make sure
-                # the chromosome string is valid for the current genome.
-                if ( $chromosome_sizes->{$bed_line_items[0]} ) {
-
-                    # Check that the start and stop coordinates are valid
-                    # integers for the given chromosome.
-                    if ( $bed_line_items[1] && 
-                        $bed_line_items[1] > 0 &&
-                        $bed_line_items[1] <=
-                        $chromosome_sizes->{$bed_line_items[0]} ) {
-                        if ( $bed_line_items[2] && 
-                            $bed_line_items[2] > 0 &&
-                            $bed_line_items[2] <=
-                            $chromosome_sizes->{$bed_line_items[0]} ) {
-
-                            # Check to make sure the end coordinate is
-                            # greater than the start coordinates.
-                            if ( $bed_line_items[2] > $bed_line_items[1] )
-                            {
-                                
-                                # Add the BED coordinates to the
-                                # bed_file_coordinates Array Ref in the
-                                # form of a Hash Ref.
-                                push(@$bed_file_coordinates,
-                                    {
-                                        chromosome  =>  $bed_line_items[0],
-                                        start       =>  $bed_line_items[1],
-                                        end         =>  $bed_line_items[2],
-                                    }
-                                );
-                            } else {
-                                push(@$bed_file_errors,
-                                    'The chromosome end position: ' .
-                                    $bed_line_items[2] . ' is not ' .
-                                    'greater than the chromosome start ' .
-                                    'position: ' . $bed_line_items[1] .
-                                    'on line: ' . $line_number . '.'
-                                );
-                            }
-                        } else {
-                            push(@$bed_file_errors, 
-                                'The chromosome end position: ' .
-                                $bed_line_items[2] . ' on line: ' .
-                                $line_number . ' is not valid for the ' .
-                                ' chromosome ' . $bed_line_items[0]
-                            );
-                        }
-                    } else {
-                        push(@$bed_file_errors, 
-                            'The chromosome start position: ' .
-                            $bed_line_items[1] . ' on line: ' .
-                            $line_number . ' is not valid for the ' .
-                            ' chromosome ' . $bed_line_items[0]
-                        );
-                    }
-                } else {
-
-                    # Don't check the rest of the fields, and return an
-                    # error about this line.
-                    push(@$bed_file_errors,
-                        'The chromosome ' . $bed_line_items[0] . ' on line'
-                        . $line_number . ' is not valid for the defined ' . 
-                        'genome: ' . $self->genome . '.'
-                    );
-                }
-            } else {
-
-                # Return an error message for this line indicating that it
-                # did not have enough information.
-                push(@$bed_file_errors,
-                    'Line ' . $line_number . ' does not have enough tab-' .
-                    'separated fields. You must have four fields: ' .
-                    'chromosome, start position, stop position, and peak '
-                    . 'name.'
-                );
-            }
-        } else {
-            # Add an error message indicating that the current line
-            # exceeded the maximum allowable BED coordinates for the
-            # server.
-            push(@$bed_file_errors,
-                'Line number ' . $line_number . ' exceeds the ' .
-                'administrator-defined maximum coordinates for ChIP' .
-                ' primer design. Primers will not be made for these ' . 
-                'coordinates.'
-            );
-        }
-    }
-    close $bed_file;
-
-    return ($bed_file_errors, $bed_file_coordinates);
 }
 
 __PACKAGE__->meta->make_immutable;

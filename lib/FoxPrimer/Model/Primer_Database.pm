@@ -4,6 +4,7 @@ use namespace::autoclean;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 use FoxPrimer::Schema;
+use FoxPrimer::Model::UCSC;
 use Data::Dumper;
 
 =head1 NAME
@@ -131,6 +132,24 @@ sub _get_chip_genomes_schema    {
     my $self = shift;
     my $dsn = "dbi:SQLite:$FindBin::Bin/../db/chip_genomes.db";
     my $schema = FoxPrimer::Schema->connect($dsn, '', '', '');
+    return $schema;
+}
+
+=head2 define_ucsc_schema
+
+This subroutine is passed a genome string and returns a DBIx::Class::Schema
+object with a connection to the UCSC MySQL server.
+
+=cut
+
+sub define_ucsc_schema {
+    my $self = shift;
+    my $genome = shift;
+    
+    # Connect to the UCSC MySQL Browser
+    my $schema =
+    FoxPrimer::Model::UCSC->connect('dbi:mysql:host=genome-mysql.cse.ucsc.edu;database='
+        . $genome, "genome");
     return $schema;
 }
 

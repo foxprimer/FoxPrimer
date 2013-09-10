@@ -1,0 +1,37 @@
+[% WRAPPER default.tt title = c.config.name ; END %]
+[% META title = 'Add Motif' %]
+<div id="stylized" class="myform" align="center">
+    <form action="add_motif" method="post" enctype="multipart/form-data">
+        <p>
+        Please fill in the following information for adding a motif to the
+        available motifs for ChIP qPCR primer design.
+        </p>
+        <p>
+        Check <a href=http://meme.nbcr.net/meme/doc/meme-format.html>MEME Motif
+            Specification</a> for information about valid file formats for use
+        with FIMO for motif searching.
+        </p>
+        <table>
+            <tr>
+                <td><label>Motif Name</label></td>
+                <td><span class="small">Please enter a name. All whitespace will
+                        be removed from the name.</span></td>
+                <td><input type="text" name="motif_name" title="Motif
+                    Name"></td>
+            </tr>
+            <tr>
+                <td><label>Motif File</label></td>
+                <td><span class="small">Upload a MEME-format motif
+                        file:</span></td>
+                <td>
+                    <input type="hidden" name="motif_submit" value="yes">
+                    <input type="file" name="motif_file">
+                </td>
+            </tr>
+        </table>
+        <p></p>
+        <p>
+        <button type="submit" value="send">Upload Motif File!</button>
+        </p>
+    </form>
+</div>

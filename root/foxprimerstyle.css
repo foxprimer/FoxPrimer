@@ -1,0 +1,154 @@
+body
+{
+    font-family:"Lucida Grande", "Lucida Sans Unicode", Verdana, Arial, Helvetica, sans-serif;
+    font-size:12px;
+    padding-left: auto;
+}
+UL.navigation
+{
+    position: absolute;
+    top: 190px;
+    left: 5px;
+    background: #ebf4fb; 
+    border:solid 2px #b7ddf2;
+    padding: 15px;
+    list-style-type: none;
+}
+P.copyright
+{
+    position: fixed;
+    left: 20px;
+    bottom: 5px;
+    margin-top: 25px;
+    z-index: 5;
+}
+IMG.fox
+{
+    position: absolute;
+    left: 40px;
+    top: 50px;
+}
+IMG.catalyst
+{
+    position: absolute;
+    right: 40px;
+    top: 87px;
+}
+H1.title
+{
+    position: relative;
+    top: 75px;
+    text-align: center; 
+    color: green; 
+    background: #ebf4fb; 
+    border:solid 2px #b7ddf2;
+    width: 500px; 
+    padding: 15px; 
+    margin-left: auto;
+    margin-right: auto;
+}
+#messages
+{
+    position: relative;
+    top: 210px;
+    border:solid 2px #b7ddf2;
+    background:#ebf4fb;
+    margin: 10px;
+    margin-left: auto;
+    margin-right: auto;
+    width:500px;
+    text-align: center;
+}
+#messages.status
+{
+    color: #390;
+    text-align: center;
+}
+#messages.error
+{
+    color: #f00;
+    text-align: center;
+}
+p, h1, form, button
+{
+    border:0; 
+    margin:0; 
+    padding:0;
+}
+p.spacer{
+    clear:both; 
+    height:1px;
+}
+/* ----------- My Form ----------- */
+.myform
+{
+    position: relative;
+    top: 220px;
+    width: auto;
+    margin-left: auto;
+    margin-right: auto;
+    padding:20px;
+    margin-bottom: 50px;
+}
+/* ----------- stylized ----------- */
+#stylized
+{
+    border:solid 2px #b7ddf2;
+    background:#ebf4fb;
+}
+#stylized h1
+{
+    font-size:14px;
+    font-weight:bold;
+    margin-bottom:8px;
+}
+#stylized p
+{
+    font-size:11px;
+    color:#666666;
+    margin-bottom:20px;
+    border-bottom:solid 1px #b7ddf2;
+    padding-bottom:10px;
+}
+#stylized label
+{
+    display:table-cell;
+    font-weight:bold;
+    text-align:left;
+    width:140px;
+    float:none;
+}
+#stylized .small
+{
+    color:#666666;
+    display:table-row;
+    font-size:11px;
+    font-weight:normal;
+    text-align:left;
+    width:140px;
+    float: left;
+}
+#stylized input
+{
+    font-size:12px;
+    padding:4px 2px;
+    border:solid 1px #aacfe4;
+    width:200px;
+    margin:7px 0 10px 10px;
+}
+#stylized button
+{
+    clear:both;
+    width:125px;
+    height:31px;
+    position: relative;
+    margin-left: auto;
+    margin-right: auto;
+    /* background:#666666 url(img/button.png) no-repeat; */
+    background:#666666 no-repeat;
+    text-align:center;
+    line-height:31px;
+    color:#FFFFFF;
+    font-size:11px;
+    font-weight:bold;
+}

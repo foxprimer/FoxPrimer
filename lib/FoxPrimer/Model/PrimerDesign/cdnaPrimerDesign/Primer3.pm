@@ -3,7 +3,6 @@ use Moose::Role;
 use namespace::autoclean;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
-use Bio::SeqIO;
 use FoxPrimer::Model::PrimerDesign::Primer3;
 use Data::Dumper;
 

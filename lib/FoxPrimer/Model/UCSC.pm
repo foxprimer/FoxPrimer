@@ -17,12 +17,12 @@ Catalyst Model.
 
 =head1 AUTHOR
 
-Jason R Dobson
+Jason R Dobson, L<foxprimer@gmail.com>
 
 =head1 LICENSE
 
-This library is free software. You can redistribute it and/or modify
-it under the same terms as Perl itself.
+This library is free software. You can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut
 

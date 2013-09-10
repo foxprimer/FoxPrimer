@@ -1,11 +1,12 @@
 package FoxPrimer::Model::PrimerDesign::chipPrimerDesign::Primer3;
-use Moose;
+use Moose::Role;
+use Carp;
 use namespace::autoclean;
-use File::Which;
+use autodie;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
-
-extends 'Catalyst::Model';
+use FoxPrimer::Model::PrimerDesign::Primer3;
+use Data::Dumper;
 
 =head1 NAME
 
@@ -13,11 +14,11 @@ FoxPrimer::Model::PrimerDesign::chipPrimerDesign::Primer3 - Catalyst Model
 
 =head1 DESCRIPTION
 
-This Module designs primer for ChIP-qPCR.
+This Module designs primers for ChIP-qPCR.
 
 =head1 AUTHOR
 
-Jason R Dobson foxprimer@gmail.com
+Jason R Dobson L<foxprimer@gmail.com>
 
 =head1 LICENSE
 
@@ -26,107 +27,111 @@ it under the same terms as Perl itself.
 
 =cut
 
-=head2 fasta_file
-
-This Moose object holds the path to the FASTA file of sequence for primer
-design.
-
-=cut
-
-has fasta_file	=>	(
-	is			=>	'ro',
-	isa			=>	'Str',
-);
-
-=head2 genome
-
-This Moose object holds the pre-validated string for the genome to which
-the primers are designed.
-
-=cut
-
-has	genome	=>	(
-	is			=>	'ro',
-	isa			=>	'Str',
-);
-
-=head2 chromosome
-
-This Moose object holds the string for the chromosome on which these
-primers are being designed.
-
-=cut
-
-has chromosome	=>	(
-	is			=>	'ro',
-	isa			=>	'Str',
-);
-
-=head2 start
-
-This Moose object holds the integer value for the genomic start coordinate.
-
-=cut
-
-has start	=>	(
-	is			=>	'ro',
-	isa			=>	'Int'
-);
-
-=head2 end
-
-This Moose object holds the integer value for the genome end coordinate.
-
-=cut
-
-has end	=>	(
-	is			=>	'ro',
-	isa			=>	'Int',
-);
-
-=head2 target
-
-This Moose object holds the string that will be passed to Primer3 for the
-target coordinates around which primers must be designed.
-
-=cut
-
-has target	=>	(
-	is			=>	'ro',
-	isa			=>	'Str',
-	default		=>	'None',
-);
-
-=head2 product_size
-
-This Moose object holds the pre-validated product size string to be passed
-to Primer3.
-
-=cut
-
-has product_size	=>	(
-	is			=>	'ro',
-	isa			=>	'Str',
-);
-
-=head2 mispriming_file
-
-This Moose object holds the path to the mispriming file that Primer3 will
-use to design primers.
-
-=cut
-
-has mispriming_file	=>	(
-	is			=>	'ro',
-	isa			=>	'Str',
-);
-
 =head2 create_primers
 
-This subroutine will make a call to Primer3 and design primers and return
-an Array Ref of Hash Refs of primer information.
+This subroutine will make a call to Primer3 and design primers and returns
+an Array Ref of Hash Refs of primer information. This subroutine takes the following arguments:
+
+    1. A Hash Ref of primer information (genomic targets)
+    2. A File::Temp object corresponding to the FASTA files of the target
+       sequenes.
+    3. The pre-validated product size string.
+    4. The path to the appropriate mispriming file.
 
 =cut
+
+sub create_primers {
+    my $self = shift;
+    my $target_coordinates = shift;
+    my $fasta_file = shift;
+    my $product_size = shift;
+    my $mispriming_file = shift;
+
+    # Pre-declare a Hash Ref to hold the primers created.
+    my $created_primers = {};
+
+    # Pre-declare an Array Ref to hold any error messages
+    my $error_messages = [];
+
+    # Run the _get_template_seq subroutine to extract the sequence from the
+    # user-defined FASTA file
+    my $template_seq = $self->_get_template_seq($fasta_file);
+
+    # Run the _get_sequence_target subroutine to extract the primer3-formatted
+    # string to define the location to target for primer design
+    my $target_seq = $self->_get_sequence_target($target_coordinates);
+
+    # Create a FoxPrimer::Model::PrimerDesign::Primer3 object, depending on
+    # whether the user is adding extended coordinates, define the 
+    my $primer3 = FoxPrimer::Model::PrimerDesign::Primer3->new(
+        SEQUENCE_TEMPLATE                       =>  $template_seq,
+        PRIMER_TASK                             =>  'generic',
+        PRIMER_PRODUCT_SIZE_RANGE               =>  $product_size,
+        PRIMER_THERMODYNAMIC_PARAMETERS_PATH    =>  "$FindBin::Bin/../root/static/primer3_files/primer3_config/",
+        PRIMER_MISPRIMING_LIBRARY               =>  $mispriming_file,
+        PRIMER_EXPLAIN_FLAG                     =>  1,
+        SEQUENCE_TARGET                         =>  $target_seq,
+        PRIMER_NUM_RETURN                       =>  10,
+    );
+
+    # Copy the 'creation_results_stone' object into a local variable
+    my $results = $primer3->creation_results_stone;
+
+    # Make sure that primer3 was able to create primers under the
+    # conditions specified by the user. If not return an error message.
+    if ( $results->get('PRIMER_PAIR_NUM_RETURNED') > 0 ) {
+
+        my $num_returned = $results->get('PRIMER_PAIR_NUM_RETURNED')->{'.name'};
+
+        # Iterate through the primers have have been designed and extract
+        # their coordinates.
+        for (my $i = 0; $i < $num_returned; $i++) {
+
+            # Store the primer information in the created_primers Hash Ref
+            $created_primers->{'Primer Pair ' . $i}{ 'Left Primer Coordinates'}
+            = $results->get("PRIMER_LEFT_$i")->{'.name'};
+
+            $created_primers->{'Primer Pair ' . $i}{ 'Right Primer Coordinates'}
+            = $results->get("PRIMER_RIGHT_$i")->{'.name'};
+
+            $created_primers->{'Primer Pair ' . $i}{'Left Primer Sequence'} =
+            $results->get('PRIMER_LEFT_' . $i .  '_SEQUENCE')->{'.name'};
+
+            $created_primers->{'Primer Pair ' . $i}{ 'Right Primer Sequence'} =
+            $results->get('PRIMER_RIGHT_' . $i . '_SEQUENCE')->{'.name'};
+
+            $created_primers->{'Primer Pair ' . $i}{ 'Left Primer Tm'} =
+            $results->get('PRIMER_LEFT_' . $i . '_TM')->{'.name'};
+
+            $created_primers->{'Primer Pair ' . $i}{ 'Right Primer Tm'} =
+            $results->get('PRIMER_RIGHT_' . $i . '_TM')->{'.name'};
+
+            $created_primers->{'Primer Pair ' . $i}{ 'Product Size'} =
+            $results->get('PRIMER_PAIR_' . $i . '_PRODUCT_SIZE')->{'.name'};
+
+            $created_primers->{'Primer Pair ' . $i}{ 'Product Penalty'} =
+            $results->get('PRIMER_PAIR_' . $i . '_PENALTY')->{'.name'};
+        }
+
+
+        return ($created_primers, $error_messages, $num_returned);
+    } else {
+
+        push(@{$error_messages},
+            'Could not design primers for the target coordinates: ' .
+            $target_coordinates->{chromosome} . ':' .
+            $target_coordinates->{start} . '-' . $target_coordinates->{stop},
+            'All pairs considered: ' .
+            $results->get('PRIMER_PAIR_EXPLAIN')->{'.name'},
+            'Left Primers considered: ' .
+            $results->get('PRIMER_LEFT_EXPLAIN')->{'.name'},
+            'Right Primers considered: ' .
+            $results->get('PRIMER_RIGHT_EXPLAIN')->{'.name'},
+        );
+
+        return ($created_primers, $error_messages, 0);
+    }
+}
 
 #sub create_primers {
 #	my $self = shift;
@@ -247,26 +252,71 @@ an Array Ref of Hash Refs of primer information.
 #	}
 #}
 
-=head2 cdna_sequence
+=head2 _get_template_seq
 
-This subroutine takes the user-defined path to the cDNA sequence in FASTA
-format and extracts the sequence using Bio::SeqIO.
+This private subroutine is passed a path to the FASTA-format file and returns a
+string of the template sequence.
 
 =cut
 
-#sub cdna_sequence {
-#	my $self = shift;
-#
-#	# Create a Bio::SeqIO object for the cDNA file provided by the user.
-#	my $seqio = Bio::SeqIO->new(
-#		-file	=>	$self->cdna_fh,
-#		-format	=>	'FASTA'
-#	);
-#
-#	# Extract the sequence from the file and return it
-#	return $seqio->next_seq;
-#}
+sub _get_template_seq   {
+    my $self = shift;
+    my $file = shift;
 
-__PACKAGE__->meta->make_immutable;
+    # Pre-declare a scalar to hold the string of FASTA sequence
+    my $template = '';
+
+    # Open the file, and extract the sequence
+    open my $fh, "<", $file;
+    while(<$fh>) {
+        my $line = $_;
+        chomp($line);
+        
+        # Skip the header line
+        unless ( $line =~ /^>/ ) {
+
+            # Add to template 
+            if ( $line ) {
+                if ( $template ) {
+                    $template .= $line;
+                } else {
+                    $template = $line;
+                }
+            }
+        }
+    }
+
+    return $template;
+}
+
+=head2 _get_sequence_target
+
+This private subroutine is passed a Hash Ref of sequence coordinate targets and
+if there is target coordinates, a string will be created for primer3.
+
+=cut
+
+sub _get_sequence_target    {
+    my $self = shift;
+    my $coordinate_hash = shift;
+
+    # Pre-declare a string to hold the target string
+    my $target_string = '';
+
+    # If the coordinate_hash has they keys 'target_start' and 'target_stop',
+    # create a target string, otherwise just return an empty string.
+    if ( $coordinate_hash->{target_start} && $coordinate_hash->{target_stop} ) {
+        $target_string = join('', 
+            ($coordinate_hash->{target_start} + 1) - $coordinate_hash->{start},
+            ',',
+            (
+                ($coordinate_hash->{target_stop} + 1) -
+                $coordinate_hash->{target_start}
+            ),
+        );
+    }
+
+    return $target_string;
+}
 
 1;

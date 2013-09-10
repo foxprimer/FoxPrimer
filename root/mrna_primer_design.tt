@@ -68,23 +68,23 @@
 			<th>Right Primer Three Prime Position</th>
 			[% FOREACH primer_row IN primer_results %]
 				<tr>
-					<td>[% primer_row.accession %]</td>
-					<td>[% primer_row.description %]</td>
-					<td>[% primer_row.primer_pair_type %]</td>
-					<td>[% primer_row.primer_pair_penalty %]</td>
-					<td>[% primer_row.left_primer_position %]</td>
-					<td>[% primer_row.right_primer_position %]</td>
-					<td>[% primer_row.product_size %]</td>
-					<td>[% primer_row.left_primer_sequence %]</td>
-					<td>[% primer_row.right_primer_sequence %]</td>
-					<td>[% primer_row.left_primer_length %]</td>
-					<td>[% primer_row.right_primer_length %]</td>
-					<td>[% primer_row.left_primer_tm %]</td>
-					<td>[% primer_row.right_primer_tm %]</td>
-					<td>[% primer_row.left_primer_five_prime %]</td>
-					<td>[% primer_row.left_primer_three_prime %]</td>
-					<td>[% primer_row.right_primer_five_prime %]</td>
-					<td>[% primer_row.right_primer_three_prime %]</td>
+					<td align="center">[% primer_row.accession %]</td>
+					<td align="center">[% primer_row.description %]</td>
+					<td align="center">[% primer_row.primer_pair_type %]</td>
+					<td align="center">[% primer_row.primer_pair_penalty %]</td>
+					<td align="center">[% primer_row.left_primer_position %]</td>
+					<td align="center">[% primer_row.right_primer_position %]</td>
+					<td align="center">[% primer_row.product_size %]</td>
+					<td align="center">[% primer_row.left_primer_sequence %]</td>
+					<td align="center">[% primer_row.right_primer_sequence %]</td>
+					<td align="center">[% primer_row.left_primer_length %]</td>
+					<td align="center">[% primer_row.right_primer_length %]</td>
+					<td align="center">[% primer_row.left_primer_tm %]</td>
+					<td align="center">[% primer_row.right_primer_tm %]</td>
+					<td align="center">[% primer_row.left_primer_five_prime %]</td>
+					<td align="center">[% primer_row.left_primer_three_prime %]</td>
+					<td align="center">[% primer_row.right_primer_five_prime %]</td>
+					<td align="center">[% primer_row.right_primer_three_prime %]</td>
 				</tr>
 			[% END %]
 		</table>

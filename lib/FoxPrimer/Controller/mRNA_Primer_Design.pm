@@ -10,7 +10,7 @@ __PACKAGE__->config(namespace => 'mrna_primer_design');
 
 =head1 NAME
 
-FoxPrimer::Controller::SearchDatabase
+FoxPrimer::Controller::mRNA_Primer_Design
 
 =cut
 
@@ -22,8 +22,8 @@ Jason R. Dobson, L<foxprimer@gmail.com>
 
 =head1 DESCRIPTION
 
-Catalyst Controller that controls the logic flow for searching the FoxPrimer
-qPCR primer database.
+Catalyst Controller that controls the logic flow for the design of mRNA qPCR
+primers.
 
 =cut
 
@@ -127,7 +127,7 @@ sub mrna_primer_design :Private {
                     # Create a FoxPrimer::Model::CreatedPrimers::Primer result
                     # set to insert the primers into the FoxPrimer database.
                     my $created_primers_result_set =
-                        $c->model('CreatedPrimers::Primer');
+                        $c->model('CreatedPrimers::CdnaPrimer');
 
                     # Insert the primers into the created primers database.
                     $created_primers_result_set->populate(

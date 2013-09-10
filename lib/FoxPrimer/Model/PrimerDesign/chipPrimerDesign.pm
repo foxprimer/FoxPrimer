@@ -1,14 +1,17 @@
 package FoxPrimer::Model::PrimerDesign::chipPrimerDesign;
 use Moose;
+use Carp;
+use autodie;
 use namespace::autoclean;
 use FindBin;
 use lib "$FindBin::Bin/../lib";
-use FoxPrimer::Schema;
 use FoxPrimer::Model::PrimerDesign::chipPrimerDesign::twoBitToFa;
 use FoxPrimer::Model::PrimerDesign::chipPrimerDesign::FIMO;
-use FoxPrimer::Model::PrimerDesign::chipPrimerDesign::Primer3;
+use FoxPrimer::Model::PeaksToGenes;
+use Data::Dumper;
 
-extends 'Catalyst::Model';
+with 'FoxPrimer::Model::Primer_Database';
+with 'FoxPrimer::Model::PrimerDesign::chipPrimerDesign::Primer3';
 
 =head1 NAME
 
@@ -21,46 +24,14 @@ primers.
 
 =head1 AUTHOR
 
-Jason R Dobson foxprimer@gmai.com
+Jason R Dobson L<foxprimer@gmail.com>
 
 =head1 LICENSE
 
-This library is free software. You can redistribute it and/or modify
-it under the same terms as Perl itself.
+This library is free software. You can redistribute it and/or modify it under
+the same terms as Perl itself.
 
 =cut
-
-=head2 bed_coordinates
-
-This Moose object holds the coordinates for which the user would like to
-design ChIP primers. This is in the form of an Array Ref of Hash Refs.
-
-=cut
-
-has bed_coordinates	=>	(
-	is			=>	'ro',
-	isa			=>	'ArrayRef[HashRef]',
-);
-
-=head2 _chip_genomes_schema
-
-This Moose object contains the Schema for connecting to the ChIP Genomes
-FoxPrimer database
-
-=cut
-
-has _chip_genomes_schema	=>	(
-	is			=>	'ro',
-	isa			=>	'FoxPrimer::Schema',
-	default		=>	sub {
-		my $self = shift;
-		my $dsn = "dbi:SQLite:$FindBin::Bin/../db/chip_genomes.db";
-		my $schema = FoxPrimer::Schema->connect($dsn, '', '', '');
-		return $schema;
-	},
-	required	=>	1,
-	reader		=>	'chip_genomes_schema',
-);
 
 =head2 product_size
 
@@ -83,6 +54,7 @@ would like to search for in their genomic intervals.
 has motif	=>	(
 	is			=>	'ro',
 	isa			=>	'Str',
+    predicate   =>  'has_motif',
 );
 
 =head2 genome
@@ -95,71 +67,414 @@ primer design.
 has genome	=>	(
 	is			=>	'ro',
 	isa			=>	'Str',
+    required    =>  1,
+    lazy        =>  1,
+    default     =>  sub {
+        croak "\n\nYou must specify a genome to create ChIP primers for.\n\n";
+    },
 );
 
-=head2 _mispriming_file
+=head2 ucsc_schema
 
-This Moose object is dynamically created based on which species the user
-picks on the web form. This object contains the location of the appropriate
-mispriming file to be used by Primer3 in scalar string format.
+This Moose attribute uses FoxPrimer::Model::Primer_Database to dynamically
+create a DBIx::Schema for connection to the UCSC MySQL genome browser.
 
 =cut
 
-has _mispriming_file	=>	(
+has ucsc_schema =>  (
+    is          =>  'ro',
+    isa         =>  'FoxPrimer::Model::UCSC',
+    predicate   =>  'has_ucsc_schema',
+    writer      =>  '_set_ucsc_schema',
+);
+
+before  'ucsc_schema'   =>  sub {
+    my $self = shift;
+    unless ($self->has_ucsc_schema) {
+        $self->_set_ucsc_schema($self->_get_ucsc_schema);
+    }
+};
+
+=head2 _get_ucsc_schema
+
+This private subroutine is called dynamically to get the UCSC::Schema object for
+the user-defined genome.
+
+=cut
+
+sub _get_ucsc_schema    {
+    my $self = shift;
+    my $ucsc_schema = $self->define_ucsc_schema($self->genome);
+    return $ucsc_schema;
+}
+
+=head2 chromosome_sizes
+
+This Moose attribute is dynamically defined based on the user-defined genome and
+contains a Hash Ref of chromosome names as keys and integer lengths as values.
+
+=cut
+
+has chromosome_sizes    =>  (
+    is          =>  'ro',
+    isa         =>  'HashRef',
+    predicate   =>  'has_chromosome_sizes',
+    writer      =>  '_set_chromosome_sizes',
+);
+
+before  'chromosome_sizes'  =>  sub {
+    my $self = shift;
+    unless ( $self->has_chromosome_sizes ) {
+        $self->_set_chromosome_sizes($self->_get_chromosome_sizes);
+    }
+};
+
+=head2 _get_chromosome_sizes
+
+This private subroutine is run dynamically to fetch the chromosome sizes from
+the UCSC MySQL server.
+
+=cut
+
+sub _get_chromosome_sizes   {
+    my $self = shift;
+
+    # Get the chromosome sizes from UCSC
+    my $raw_chrom_sizes = $self->ucsc_schema->storage->dbh_do(
+        sub {
+            my ($storage, $dbh, @args) = @_;
+            $dbh->selectall_hashref("SELECT chrom, size FROM chromInfo",
+                ["chrom"]);
+        },
+    );
+
+    # Pre-declare a Hash Ref to hold the final information for the chromosome sizes
+    my $chrom_sizes = {};
+
+    # Parse the chromosome sizes file into an easier to use form
+    foreach my $chromosome (keys %$raw_chrom_sizes) {
+        $chrom_sizes->{$chromosome} = $raw_chrom_sizes->{$chromosome}{size};
+    }
+
+    return $chrom_sizes;
+}
+
+=head2 bed_file
+
+This Moose attribute holds the path to the BED-format file that contains the
+coordinates within which primers will be designed.
+
+=cut
+
+has bed_file    =>  (
+    is          =>  'ro',
+    isa         =>  'File::Temp',
+    required    =>  1,
+    lazy        =>  1,
+    default     =>  sub {
+        croak "\n\nYou must define a File::Temp object for the BED file that " .
+        "contains the coordinates where primers will be designed.\n\n";
+    },
+);
+
+=head2 _max_bed_lines
+
+This private Moose object is to be controlled by the administrator based on
+their server's capabilities. This controls how many lines of the BED file
+uploaded by the user that will be read in for ChIP primer design. By default
+this value is set to 10.
+
+=cut
+
+has _max_bed_lines  =>  (
+    is          =>  'ro',
+    isa         =>  'Int',
+    default     =>  10,
+    required    =>  1,
+    lazy        =>  1,
+    reader      =>  'max_bed_lines',
+    writer      =>  '_set_max_bed_lines',
+);
+
+=head2 mispriming_file
+
+This Moose attribute hold the path to the mispriming file that will be used for
+primer design.
+
+=cut
+
+has mispriming_file	=>	(
 	is			=>	'ro',
 	isa			=>	'Str',
 	required	=>	1,
 	lazy		=>	1,
 	default		=>	sub {
-		my $self = shift;
-
-		if ($self->species eq 'Human') {
-			return "$FindBin::Bin/../root/static/files/human_and_simple";
-		} else {
-			return "$FindBin::Bin/../root/static/files/rodent_and_simple";
-		}
+        croak "\n\nYou must set a mispriming file.\n\n";
 	},
-	reader		=>	'mispriming_file'
 );
 
-=head2 _genome_id
+=head2 bed_coordinates
 
-This Moose object holds the integer value for the genome ID in the
-FoxPrimer ChIP genomes database.
+This Moose attribute holds an Array Ref of valid BED-format coordinates. This
+attribute is populated dynamically from the BED file defined by the user.
 
 =cut
 
-has _genome_id	=>	(
-	is			=>	'ro',
-	isa			=>	'Int',
-	required	=>	1,
-	lazy		=>	1,
-	default		=>	sub {
-		my $self = shift;
-
-		# Fetch the genome ID from the FoxPrimer ChIP database.
-		my $search_result =
-		$self->chip_genomes_schema->resultset('Genome')->find(
-			{
-				genome	=>	$self->genome,
-			}
-		);
-
-		# If a genome was found, return the genome ID, otherwise return an
-		# empty string which will cause the Moose constructor to fail.
-		if ( $search_result && $search_result->id ) {
-			return $search_result->id;
-		} else {
-			return '';
-		}
-	},
-	reader		=>	'genome_id',
+has bed_coordinates =>  (
+    is          =>  'ro',
+    isa         =>  'ArrayRef',
+    predicate   =>  'has_bed_coordinates',
+    writer      =>  '_set_bed_coordinates',
 );
+
+before 'bed_coordinates'    =>  sub {
+    my $self = shift;
+    unless ( $self->has_bed_coordinates && $self->has_bed_file_errors ) {
+        my ($bed_coordinates, $bed_file_errors) = $self->_check_bed_file;
+        $self->_set_bed_coordinates($bed_coordinates);
+        $self->_set_bed_file_errors($bed_file_errors);
+    }
+};
+
+=head2 bed_file_errors
+
+This Moose attribute holds any errors found in the user-defined BED file. This
+attribute is dynamically defined.
+
+=cut
+
+has bed_file_errors =>  (
+    is          =>  'ro',
+    isa         =>  'ArrayRef',
+    predicate   =>  'has_bed_file_errors',
+    writer      =>  '_set_bed_file_errors'
+);
+
+before 'bed_file_errors'    =>  sub {
+    my $self = shift;
+    unless ( $self->has_bed_coordinates && $self->has_bed_file_errors ) {
+        my ($bed_coordinates, $bed_file_errors) = $self->_check_bed_file;
+        $self->_set_bed_coordinates($bed_coordinates);
+        $self->_set_bed_file_errors($bed_file_errors);
+    }
+};
+
+=head2 _check_bed_file
+
+This private subroutine is run dynamically to iterate through the user-defined
+BED file. This subroutine makes sure that the relevant fields of the BED file
+are valid and returns these coordinates as an Array Ref and any errors found as
+an Array Ref.
+
+=cut
+
+sub _check_bed_file {
+    my $self = shift;
+
+    # Pre-declare an Array Ref to hold the BED-format coordinates
+    my $coordinates = [];
+
+    # Pre-declare an Array Ref to hold any errors found in the BED file.
+    my $errors = [];
+
+    # Pre-declare a line number to return useful error messages
+    my $line_number = 0;
+
+    # Open the user-defined BED file, iterate through the lines, check each line
+    # and add the line to coordinates or information about the line to errors as
+    # appropriate.
+    open my $bed_file, '<', $self->bed_file;
+    while(<$bed_file>) {
+        my $line = $_;
+        chomp($line);
+        my @bed_fields = split(/\t/, $line);
+
+        # Increase the line number
+        $line_number++;
+
+        # Check to make sure the current chromosome is valid for the
+        # user-defined genome
+        if ( $self->chromosome_sizes->{$bed_fields[0]} ) {
+
+            # Check to make sure start and stop fields are positive integer
+            # values
+            if ( ($bed_fields[1] =~ /^\d+$/) && ($bed_fields[1] >= 1) && 
+                ($bed_fields[2] =~ /^\d+$/) && ($bed_fields[2] >= 1) ) {
+
+                # Check to make sure the stop coordinate is larger than the
+                # start coordinate
+                if ( $bed_fields[2] > $bed_fields[1] ) {
+
+                    # Check to make sure that both start and stop coordinates
+                    # are valid for the current chromosome length
+                    if ( ($bed_fields[1] <=
+                            $self->chromosome_sizes->{$bed_fields[0]}) &&
+                        ( $bed_fields[2] <=
+                            $self->chromosome_sizes->{$bed_fields[0]}) ) {
+
+                        # The coordinates are valid, add then to the coordinates
+                        # Array Ref
+                        push(@{$coordinates}, 
+                            {
+                                chromosome  =>  $bed_fields[0],
+                                start       =>  $bed_fields[1],
+                                stop        =>  $bed_fields[2],
+                            }
+                        );
+                    } else {
+
+                        # Add an error message to the errors Array Ref
+                        push(@{$errors}, "The coordinates $bed_fields[1] and " .
+                            "$bed_fields[2] are not valid for the chromosome " .
+                            "$bed_fields[0] in the $self->genome genome."
+                        );
+                    }
+                } else {
+
+                    # Add an error message to the errors Array Ref
+                    push(@{$errors}, "The stop coordinate $bed_fields[2] " .
+                        "must be larger than the start coordiante " .
+                        "$bed_fields[1] on line $line_number."
+                    );
+                }
+            } else {
+
+                # Add an error message to the errors Array Ref
+                push(@{$errors}, "The start and stop fields on line: " .
+                   "$line_number are not positive integers."
+               );
+            }
+        } else {
+
+            # Add an error message to the errors Array Ref
+            push(@{$errors}, "The chromosome $bed_fields[0] is not " .
+                "valid for the $self->genome genome on line $line_number"
+                . " of your file."
+            );
+        }
+    }
+    close $bed_file;
+
+    # See if the admin-defined limit on the number of locations to make qPCR
+    # primers for has been reached
+    if ( $line_number > $self->max_bed_lines ) {
+        push ( @{$errors}, "The maximum number of lines $self->max_bed_lines " .
+            "has been reached. Please use less intervals for primer design.");
+    }
+
+    return ($coordinates, $errors);
+}
+
+=head2 extended_bed_coordinates
+
+This Moose attribute is dynamically defined based on the product size string
+defined by the user and the length of each interval from the valid BED-format
+file uploaded by the user. This attribute holds the extended coordinates in
+Array Ref format, where each entry in the Array Ref is a BED-format line.
+
+=cut
+
+has extended_bed_coordinates    =>  (
+    is          =>  'ro',
+    isa         =>  'ArrayRef',
+    predicate   =>  'has_extended_bed_coordinates',
+    writer      =>  '_set_extended_bed_coordinates',
+);
+
+before  'extended_bed_coordinates'  =>  sub {
+    my $self = shift;
+    unless($self->has_extended_bed_coordinates) {
+        $self->_set_extended_bed_coordinates($self->_get_extended_bed_coordinates);
+    }
+};
+
+=head2 _get_extended_bed_coordinates
+
+This subroutine extends the coordinates based on the product_size max product
+length.
+
+=cut
+
+sub _get_extended_bed_coordinates {
+    my $self = shift;
+
+	# Pre-declare an Array Ref to hold the extended coordinates.
+	my $extended_coordinates = [];
+
+	# Extract the min and max product sizes from the product size string.
+	my ($min_size, $max_size) = split(/-/, $self->product_size);
+
+    # Iterate through the BED-format coordinates defined in bed_coordinates
+    foreach my $coordinates ( @{$self->bed_coordinates} ) {
+
+        # Copy the coordinates to local values
+        my $chr = $coordinates->{chromosome};
+        my $start = $coordinates->{start};
+        my $stop = $coordinates->{stop};
+
+        # Calculate the interval length
+        my $interval_length = $stop - $start;
+
+        # Make sure the length of the interval is more than twice the length of
+        # the max primer product size
+        if ( $interval_length < (2 * $max_size) ) {
+
+            # Extend the coordinates and make sure they are valid
+            # coordinates for the given chromosome on the user-defined
+            # genome
+            # 
+            # Calculate the difference between the interval length and the
+            # desired interval length
+            my $interval_diff = (2 * $max_size) - $interval_length;
+
+            # Calculate how many bases the start and stop need to be extended in
+            # the 5' and 3' directions, respectively.
+            my $extension_length = int(($interval_diff / 2) + 0.5);
+
+            # Calculate the extended start and stop. Make sure they are valid
+            # for the current chromosome
+            my $extended_start = $start - $interval_diff;
+            my $extended_stop = $stop + $interval_diff;
+
+            # Make sure the extended start is greater than zero. If not,
+            # calculate the negative difference and add it to the extended_stop
+            if ( $extended_start <= 0 ) {
+                $extended_stop += ( 1 - $extended_start );
+            }
+
+            # Make sure the extended stop is less than or equal to the length of
+            # the current chromosome. If not, calculate the positive difference
+            # and subtract it from the extended_start
+            if ( $extended_stop > $self->chromosome_sizes->{$chr} ) {
+                $extended_start -= ($extended_stop -
+                    $self->chromosome_sizes->{$chr}
+                );
+            }
+
+            # Add the extended coordinates in BED format to extended_coordinates 
+            push(@{$extended_coordinates},
+                {
+                    chromosome      =>  $chr, 
+                    start           =>  $extended_start, 
+                    stop            =>  $extended_stop,
+                    target_start    =>  $start,
+                    target_stop     =>  $stop,
+                }
+            );
+        } else {
+
+            # Add the original coordinates to the extended_coordinates Array Ref
+            push(@{$extended_coordinates}, $coordinates);
+        }
+    }
+
+    return $extended_coordinates;
+}
 
 =head2 design_primers
 
-This subroutine is the mini-controller, which controls the workflow and
-business logic for designing ChIP primers.
+This subroutine is the mini-controller, which controls the workflow and business
+logic for designing ChIP primers.
 
 =cut
 
@@ -173,361 +488,147 @@ sub design_primers {
 	# errors.
 	my $design_errors = [];
 
-	# Iterate through the BED coordinates, and design primers for each
-	# set of coordinates.
-	foreach my $coordinate_set ( @{$self->bed_coordinates} ) {
-
-		# Run the 'extend_coordinates' subroutine to extend the coordinates
-		# based on the product_size string.
-		my $extended_coordinate_set = $self->extend_coordinates(
-			$coordinate_set
-		);
-
-		# Pre-declare an Array Ref to hold the coordinates and FASTA files
-		# that will be sent to Primer3 for primer design.
-		my $coordinate_sets_for_primer3 = [];
-
-		# Create an instance of
-		# FoxPrimer::Model::PrimerDesign::chipPrimerDesign::twoBitToFa and
-		# run the create_temp_fasta subroutine to return the location of
-		# the temporary FASTA format file for the current coordinates.
-		my $twobit_to_fasta =
-		FoxPrimer::Model::PrimerDesign::chipPrimerDesign::twoBitToFa->new(
-			genome_id		=>	$self->genome_id,
-			chromosome		=>	$extended_coordinate_set->{chromosome},
-			start			=>	$extended_coordinate_set->{start},
-			end				=>	$extended_coordinate_set->{end},
-		);
-		my $temp_fasta = $twobit_to_fasta->create_temp_fasta;
-
-		# If the user has defined a motif to search for within their
-		# sequences create an instance of
-		# FoxPrimer::Model::PrimerDesign::chipPrimerDesign::FIMO and run
-		# the find_motifs subroutine to return an Array Ref of motif
-		# coordinates and an Array Ref of error messages (if any).
-		if ( $self->motif && $self->motif ne 'No Motif' ) {
-
-			# Create an instance of
-			# FoxPrimer::Model::PrimerDesign::chipPrimerDesign::FIMO and
-			# run the 'find_motifs' subroutine to return an Array Ref of
-			# Hash Ref coordinates.
-			my $run_fimo =
-			FoxPrimer::Model::PrimerDesign::chipPrimerDesign::FIMO->new(
-				fasta_file	=>	$temp_fasta,
-				motif		=>	$self->motif
-			);
-			my $motif_coordinates = $run_fimo->find_motifs;
-
-			# Remove the temporary FASTA file.
-			unlink($temp_fasta);
-
-			# If there were any motifs found, extend the coordinates of
-			# these motifs, and create new FASTA format files for each new
-			# coordinate set. Otherwise, add an error message to the
-			# design_errors Array Ref indicating that the motif could not
-			# be found.
-			if (@$motif_coordinates) {
-
-				# Iterate through the motif coordinates, run the
-				# 'extend_coordinates' subroutine. Then create an instance
-				# of
-				# FoxPrimer::Model::PrimerDesign::chipPrimerDesign::twoBitToFa
-				# to create a new FASTA file for each newly created set of
-				# extended coordinates. Add the FASTA file and coordinates
-				# to the coordinate_sets_for_primer3 Array Ref.
-				foreach my $motif_coordinate_set (@$motif_coordinates) {
-					my $extended_motif_coordinates =
-					$self->extend_coordinates(
-						$motif_coordinate_set
-					);
-
-					# Create an instance of
-					# FoxPrimer::Model::PrimerDesign::chipPrimerDesign::twoBitToFa
-					# and run the 'create_temp_fasta' subroutine to return
-					# the path to a new FASTA file.
-					my $motif_twobit_to_fa =
-					FoxPrimer::Model::PrimerDesign::chipPrimerDesign::twoBitToFa->new(
-						genome_id		=>	$self->genome_id,
-						chromosome		=>
-							$extended_motif_coordinates->{chromosome},
-
-						start			=>
-							$extended_motif_coordinates->{start},
-
-						end				=>
-							$extended_motif_coordinates->{end}
-					);
-					$extended_motif_coordinates->{fasta_file} =
-					$motif_twobit_to_fa->create_temp_fasta;
-
-					# Add the FASTA file and coordinates to
-					# coordinate_sets_for_primer3.
-					push(@$coordinate_sets_for_primer3,
-						$extended_motif_coordinates
-					);
-				}
-			} else {
-
-				push(@$design_errors,
-					'The motif ' . $self->motif . ' was not found by FIMO '
-					. 'in the coordinates: ' .
-					$extended_coordinate_set->{chromosome} . ':' .
-					$extended_coordinate_set->{start} . '-' .
-					$extended_coordinate_set->{end}
-				);
-			}
-		} else {
-
-			# Add the extended coordinates and the original FASTA file to
-			# the coordinate_sets_for_primer3 Array Ref.
-			$extended_coordinate_set->{fasta_file} = $temp_fasta;
-			push(@$coordinate_sets_for_primer3, $extended_coordinate_set);
-		}
-
-		# Iterate through the coordinate_sets_for_primer3 and create
-		# primers and create an instance of
-		# FoxPrimer::Model::PrimerDesign::chipPrimerDesign::Primer3 to
-		# design primers either within the interval defined by the user or
-		# within the user and flanking the target sequence (motif or
-		# summit).
-		foreach my $coordinate_set_for_primer3
-		(@$coordinate_sets_for_primer3) {
-
-			# Create an instance of
-			# FoxPrimer::Model::PrimerDesign::chipPrimerDesign::Primer3
-			my $primer3 =
-			FoxPrimer::Model::PrimerDesign::chipPrimerDesign::Primer3->new(
-				fasta_file		=>
-					$coordinate_set_for_primer3->{fasta_file},
-
-				genome			=>	$self->genome,
-				chromosome		=>
-					$coordinate_set_for_primer3->{chromosome},
-
-				start			=>	$coordinate_set_for_primer3->{start},
-				end				=>	$coordinate_set_for_primer3->{end},
-				target			=>	$coordinate_set_for_primer3->{target},
-				product_size	=>	$self->product_size,
-				mispriming_file	=>	$self->mispriming_file,
-			);
-
-			# Run the 'create_primers' subroutine to return an Array Ref of
-			# primers and an error message if Primer3 was unable to design
-			# primers.
-			my ($chip_primers, $error_message) =
-			$primer3->design_primers;
-
-			# If primers were designed, add them to the designed_primers
-			# Array Ref.
-			if (@$chip_primers) {
-				push(@$designed_primers, @$chip_primers);
-			} else {
-				# If no primers were designed, add the error_message to the
-				# design_errors Array Ref.
-				push(@$design_errors, $error_message);
-			}
-		}
-	}
-
-	# Run the unique_primers subroutine to return unique primers
-	my $unique_primers = $self->unique_primers($designed_primers);
-
-	return ($design_errors, $designed_primers);
-}
-
-=head2 extend_coordinates
-
-This subroutine extends the coordinates based on the product_size max
-product length.
-
-=cut
-
-sub extend_coordinates {
-	my ($self, $coordinates) = @_;
-
-	# Pre-declare a Hash Ref to hold the extended coordinates.
-	my $extended_coordinates = {};
-
-	# Extract the min and max product sizes from the product size string.
-	my ($min_size, $max_size) = split(/-/, $self->product_size);
-
-	# Calculate the length of the interval.
-	my $interval_length = $coordinates->{end} - $coordinates->{start};
-
-	# If the interval length is less than 30 bases, use the original
-	# coordinates as required coordinates for Primer3 and extend the
-	# coordinates so that they are twice the length of the max product
-	# size.
-	if  ($interval_length <= 30 ) {
-
-		# Calculate the length to add to each side.
-		my $length_to_add = ((2*$max_size) - $interval_length) / 2;
-
-		# Add to the end coordinate, and subtract from the start
-		# coordinate to define the extended coordinates. Make sure that
-		# the extended coordinates are valid for the current
-		# chromosome.
-		my $extended_start = $coordinates->{start} - $length_to_add;
-		my $extended_end = $coordinates->{end} + $length_to_add;
-		if ( $extended_start <= 0 ) {
-			$extended_start = 1;
-		}
-		if ( $extended_end >
-			$self->chromosome_sizes->{$coordinates->{chromosome}} ) {
-			$extended_end =
-			$self->chromosome_sizes->{$coordinates->{chromosome}};
-		}
-
-		# Store the coordinates in the Hash Ref.
-		$extended_coordinates->{chromosome} = $coordinates->{chromosome};
-		$extended_coordinates->{start} = $extended_start;
-		$extended_coordinates->{end} = $extended_end;
-
-		# Store a string for Primer3 to know which location to target as
-		# the original location.
-		$extended_coordinates->{target} = $length_to_add . ',' .
-		$interval_length;
-
-	} else {
-
-		# Extend the coordinates equally on each side. First calculate how
-		# far to extend the coordinates. The coordinates should be at least
-		# twice as long as the max product size. If the coordinates are
-		# already longer than the max product size, do not change the
-		# length.
-		if ( $interval_length >= (2*$max_size) ) {
-
-			# Return the original coordinates.
-			$extended_coordinates->{chromosome} =
-				$coordinates->{chromosome};
-
-			$extended_coordinates->{start} = $coordinates->{start};
-			$extended_coordinates->{end} = $coordinates->{end};
-		} else {
-
-			# Calculate the length to add to each side. Rounded down.
-			my $length_to_add = int(((2*$max_size) - $interval_length) /
-				2);
-
-			# Add to the end coordinate, and subtract from the start
-			# coordinate to define the extended coordinates. Make sure that
-			# the extended coordinates are valid for the current
-			# chromosome.
-			my $extended_start = $coordinates->{start} - $length_to_add;
-			my $extended_end = $coordinates->{end} + $length_to_add;
-			if ( $extended_start <= 0 ) {
-				$extended_start = 1;
-			}
-			if ( $extended_end >
-				$self->chromosome_sizes->{$coordinates->{chromosome}} ) {
-				$extended_end =
-				$self->chromosome_sizes->{$coordinates->{chromosome}};
-			}
-
-			# Store the coordinates in the Hash Ref.
-			$extended_coordinates->{chromosome} =
-				$coordinates->{chromosome};
-
-			$extended_coordinates->{start} = $extended_start;
-			$extended_coordinates->{end} = $extended_end;
-		}
-	}
-
-	return $extended_coordinates;
-}
-
-=head2 chromosome_sizes
-
-This subroutine interacts with the FoxPrimer ChIP genomes database to fetch
-the path of the chromosome sizes file for the pre-validated user-defined
-genome.
-
-=cut
-
-sub chromosome_sizes {
-	my $self = shift;
-
-	# Pre-declare a Hash Ref to hold the chromosome sizes information.
-	my $chrom_sizes = {};
-
-	# Get the path to the user-defined genome's chromosome sizes file from
-	# the FoxPrimer ChIP genomes database.
-	my $search_result =
-	$self->chip_genomes_schema->resultset('Chromosomesize')->find(
-		{
-			genome	=>	$self->genome_id,
-		}
-	);
-
-	# Make sure that a chromosome file path was returned and that the file
-	# is readable by FoxPrimer. If not, end execution.
-	if ( $search_result && $search_result->path ) {
-
-		# Make sure the file is readable.
-		unless ( -r $search_result->path ) {
-			die 'The chromosome sizes file ' . $search_result->path .
-			' was not readable by FoxPrimer. Please check the file ' .
-			'permissions';
-		}
-
-		# Open the chromosome sizes file, iterate through the lines and add
-		# the information to the chrom_sizes Hash Ref.
-		open my $chrom_file, "<", $search_result->path or die
-		"Could not read from " . $search_result . "$!\n";
-		while(<$chrom_file>) {
-			my $line = $_;
-			chomp($line);
-			my ($chromosome, $length) = split(/\t/, $line);
-			$chrom_sizes->{$chromosome} = $length;
-		}
-		close $chrom_file;
-	} else {
-
-		# End execution and return an error message.
-		die 'A chromosome sizes file was not found for the genome ' .
-		$self->genome . '. Please check that this genome is correctly ' . 
-		'installed in the FoxPrimer database.';
-	}
-
-	return $chrom_sizes;
-}
-
-=head2 unique_primers
-
-This subroutine takes an Array Ref of designed ChIP primers as an argument
-and returns only unique primers.
-
-=cut
-
-sub unique_primers {
-	my ($self, $all_primers) = @_;
-
-	# Pre-declare an Array Ref to hold the unique primers.
-	my $unique_primers = [];
-
-	# Pre-declare a Hash Ref to hold the primers that have been seen.
-	my $seen_primers = {};
-
-	# Iterate through the primers, and determine which primers are unique.
-	foreach my $primer_set ( @$all_primers ) {
-
-		# Define a string for the primer pair
-		my $primer_seqs = join(',',
-			$primer_set->{left_primer_sequence},
-			$primer_set->{right_primer_sequence}
-		);
-
-		# If the primer pair has not been seen before, add it to the
-		# unique_primers Array Ref.
-		unless ( $seen_primers->{$primer_seqs} ) {
-			push(@$unique_primers, $primer_set);
-
-			# Store the primer string in the seen_primers Hash Ref.
-			$seen_primers->{$primer_seqs} = 1;
-		}
-	}
-
-	return $unique_primers;
+    # Create an instance of
+    # FoxPrimer::Model::PrimerDesign::chipPrimerDesign::twoBitToFa and run the
+    # 'create_temp_fasta' subroutine to get an Array Ref of File::Temp objects
+    # of FASTA-format files
+    my $twobit = FoxPrimer::Model::PrimerDesign::chipPrimerDesign::twoBitToFa->new(
+        genome      =>  $self->genome,
+        coordinates =>  $self->extended_bed_coordinates,
+    );
+
+    my $fasta_files = $twobit->create_temp_fasta;
+
+    # Test to see if a motif was defined by the user
+    if ( $self->motif && $self->motif ne 'No Motif' ) {
+
+        # Pre-declare an Array Ref to hold the matched motif coordinates
+        my $motif_coordinates_array = [];
+
+        # Iterate through the FASTA files
+        foreach my $fasta_file ( @{$fasta_files} ) {
+
+            # Create an instance of
+            # FoxPrimer::Model::PrimerDesign::chipPrimerDesign::FIMO and run the
+            # 'find_motifs' subroutine to return the coordinates of matched
+            # motifs
+            my $fimo = FoxPrimer::Model::PrimerDesign::chipPrimerDesign::FIMO->new(
+                fasta_file  =>  $fasta_file,
+                motif       =>  $self->motif,
+            );
+            my $motif_coordinates = $fimo->find_motifs;
+
+            # If motif coordinates were found, add them to the
+            # motif_coordinates_array, if not add a message to design_errors
+            if ( $motif_coordinates && ( scalar (@{$motif_coordinates}) >= 1) ) {
+                push( @{$motif_coordinates_array}, @{$motif_coordinates} );
+            } else {
+                push(@{$design_errors}, "Unable to find a match for the motif " .
+                    $self->motif . " within the coordinates " . 
+                    $fimo->fasta_coordinates->{start} . 'bp to ' .
+                    $fimo->fasta_coordinates->{stop} . "bp on " .
+                    $fimo->fasta_coordinates->{chromosome} . '.'
+                );
+            }
+        }
+
+        # If there were matched motifs found, replace the bed_coordinates and
+        # extended_bed_coordinates Moose attributes, otherwise end the
+        # subroutine.
+        if ( $motif_coordinates_array && ( scalar (@{$motif_coordinates_array})
+                >= 1)) {
+            $self->_set_bed_coordinates($motif_coordinates_array);
+            $self->_set_extended_bed_coordinates($self->_get_extended_bed_coordinates);
+
+            # Create a new instance of
+            # FoxPrimer::Model::PrimerDesign::chipPrimerDesign::twoBitToFa to
+            # make FASTA files for the newly extended FASTA files centered
+            # around the matched motifs.
+            my $motif_twobit =
+            FoxPrimer::Model::PrimerDesign::chipPrimerDesign::twoBitToFa->new(
+                genome      =>  $self->genome,
+                coordinates =>  $self->extended_bed_coordinates,
+            );
+
+            # Replace the files in fasta_files with the new File::Temp
+            # FASTA-format objects
+            $fasta_files = $motif_twobit->create_temp_fasta;
+        } else {
+            return ( $designed_primers, $design_errors );
+        }
+    } 
+
+    # At this point, there is an Array Ref of primer coordinates and a
+    # corresponding FASTA-format File::Temp object in
+    # $self->extended_bed_coordinates and $fast_files. Run the 'create_primers'
+    # subroutine consumed from
+    # FoxPrimer::Model::PrimerDesign::chipPrimerDesign::Primer3
+    for ( my $i = 0; $i < @{$self->extended_bed_coordinates}; $i++ ) {
+        my ($current_results, $current_errors, $current_number_created) = $self->create_primers(
+            $self->extended_bed_coordinates->[$i],
+            $fasta_files->[$i],
+            $self->product_size,
+            $self->mispriming_file,
+        );
+
+        # If primers were not designed, add the error messages to the Array Ref
+        # of error messages
+        if ( $current_errors && ( scalar @{$current_errors} >= 1 ) ) {
+            push(@{$design_errors}, join("<br>", @{$current_errors}));
+        } else {
+
+            # Map the primers to the genome by creating an instance of
+            # FoxPrimer::Model::PeaksToGenes
+            my $ptg = FoxPrimer::Model::PeaksToGenes->new(
+                genome              =>  $self->genome,
+                primers             =>  $current_results,
+                chromosome_sizes    =>  $self->chromosome_sizes,
+                target_coordinates  =>  $self->extended_bed_coordinates->[$i],
+            );
+
+            # Run the 'annotate_primer_pairs' subroutine to return a Hash Ref of
+            # relative genomic locations indexed by each primer pair designed.
+            my $primer_pair_genomic_context = $ptg->annotate_primer_pairs;
+
+            # Add the primer information to the designed_primers Array Ref in
+            # Hash Ref format.
+            foreach my $primer_pair ( keys %{$primer_pair_genomic_context} ) {
+
+                # Extract the five prime position and length of each primer
+                my ($left_five_prime_pos, $left_length) = 
+                split(/,/, $current_results->{$primer_pair}{'Left Primer Coordinates'});
+                my ($right_five_prime_pos, $right_length) = 
+                split(/,/, $current_results->{$primer_pair}{'Right Primer Coordinates'});
+
+                # Calculate the exact genomic position of the primers
+                my $left_gen_pos = ($left_five_prime_pos - 1) +
+                $self->extended_bed_coordinates->[$i]{start};
+                my $right_gen_pos = ($right_five_prime_pos - 1) +
+                $self->extended_bed_coordinates->[$i]{start};
+
+                # Add the values to designed_primers
+                push(@{$designed_primers},
+                    {
+                        left_primer_sequence        =>  $current_results->{$primer_pair}{'Left Primer Sequence'},
+                        right_primer_sequence       =>  $current_results->{$primer_pair}{'Right Primer Sequence'},
+                        chromosome                  =>  $self->extended_bed_coordinates->[$i]{chromosome},
+                        genome                      =>  $self->genome,
+                        left_primer_five_prime      =>  $left_gen_pos,
+                        right_primer_five_prime     =>  $right_gen_pos,
+                        left_primer_three_prime     =>  $left_gen_pos + ($left_length - 1),
+                        right_primer_three_prime    =>  $right_gen_pos - ($right_length - 1),
+                        product_size                =>  $current_results->{$primer_pair}{'Product Size'},
+                        left_primer_tm              =>  $current_results->{$primer_pair}{'Left Primer Tm'},
+                        right_primer_tm             =>  $current_results->{$primer_pair}{'Right Primer Tm'},
+                        primer_pair_penalty         =>  $current_results->{$primer_pair}{'Product Penalty'},
+                        relative_locations          =>  join('<br>', @{$primer_pair_genomic_context->{$primer_pair}}),
+                    }
+                );
+            }
+        }
+    }
+
+    return ($designed_primers, $design_errors);
 }
 
 __PACKAGE__->meta->make_immutable;

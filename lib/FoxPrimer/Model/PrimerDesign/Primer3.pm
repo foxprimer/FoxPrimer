@@ -1067,9 +1067,17 @@ This primer3 parameter is not currently implemented in this module.
 
 =head2 PRIMER_EXPLAIN_FLAG
 
-This primer3 parameter is not currently implemented in this module.
+This Moose attribute holds a Boolean value that determines whether primer3 will
+give verbose explanations about primer design. This is especially useful for
+checking primers or for designing ChIP primers.
 
 =cut
+
+has PRIMER_EXPLAIN_FLAG =>  (
+    is          =>  'ro',
+    isa         =>  'Bool',
+    default     =>  1,
+);
 
 =head2 PRIMER_LIBERAL_BASE
 
@@ -1348,6 +1356,7 @@ sub _define_creation_stone   {
         PRIMER_MAX_SIZE     =>  $self->PRIMER_MAX_SIZE,
         PRIMER_THERMODYNAMIC_PARAMETERS_PATH    =>  $self->PRIMER_THERMODYNAMIC_PARAMETERS_PATH,
         PRIMER_MISPRIMING_LIBRARY   =>  $self->PRIMER_MISPRIMING_LIBRARY,
+        PRIMER_EXPLAIN_FLAG =>  $self->PRIMER_EXPLAIN_FLAG,
     );
 
     return $stone;
