@@ -1,7 +1,6 @@
 package FoxPrimer::Model::PrimerDesign::cdnaPrimerDesign::GenBankRetriever;
 use Moose::Role;
 use Carp;
-use Bio::DB::GenBank;
 use File::Fetch;
 use File::Temp;
 use File::Basename;
