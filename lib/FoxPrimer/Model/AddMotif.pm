@@ -179,7 +179,7 @@ sub add_motif   {
             print $index_out join("\n", @{$motif_names_list});
             close $index_out;
 
-            if (-s $index_out && -s $installation_location) {
+            if (-s $self->motifs_file && -s $installation_location) {
                 return 1;
             } else {
                 croak "\n\nFailed to write motifs files to installation " . 
